@@ -1,0 +1,32 @@
+{
+  "id": "torrentscsv",
+  "upstream": "torrentscsv",
+  "name": "TorrentsCSV",
+  "site": "https://torrents-csv.com",
+  "kind": "json",
+  "fixture": "torrentscsv.json",
+  "enabled": true,
+  "origins": [
+    "https://torrents-csv.com"
+  ],
+  "categories": [
+    "other"
+  ],
+  "request": {
+    "method": "GET",
+    "path": "/service/search",
+    "query": {
+      "q": "{q}",
+      "size": "{limit}"
+    }
+  },
+  "rows": "torrents",
+  "fields": {
+    "name": "name",
+    "infohash": "infohash",
+    "size_bytes": "size_bytes",
+    "seeders": "seeders",
+    "leechers": "leechers",
+    "first_seen": "created_unix"
+  }
+}

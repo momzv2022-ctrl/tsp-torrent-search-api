@@ -1,0 +1,40 @@
+{
+  "id": "yts",
+  "upstream": "ytsmx",
+  "name": "Yts",
+  "site": "https://yts.gg",
+  "kind": "json",
+  "fixture": "yts.json",
+  "enabled": true,
+  "origins": [
+    "https://yts.gg",
+    "https://movies-api.accel.li",
+    "https://yts.bz",
+    "https://yts.lt"
+  ],
+  "categories": [
+    "movies"
+  ],
+  "note": "Deployed Workers keep their built-in yts adapter and use this entry for its origins only.",
+  "request": {
+    "method": "GET",
+    "path": "/api/v2/list_movies.json",
+    "query": {
+      "query_term": "{q}",
+      "limit": "{limit}"
+    }
+  },
+  "rows": "data.movies[].torrents[]",
+  "fields": {
+    "name": "^.title_long",
+    "infohash": "hash",
+    "size_bytes": "size_bytes",
+    "seeders": "seeds",
+    "leechers": "peers",
+    "category": {
+      "const": "video"
+    },
+    "first_seen": "date_uploaded_unix",
+    "description_url": "^.url"
+  }
+}

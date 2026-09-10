@@ -1,0 +1,31 @@
+{
+  "id": "animetosho",
+  "upstream": "animetosho",
+  "name": "AnimeTosho",
+  "site": "https://animetosho.org",
+  "kind": "json",
+  "fixture": "animetosho.json",
+  "enabled": true,
+  "origins": [
+    "https://feed.animetosho.org"
+  ],
+  "categories": [
+    "anime"
+  ],
+  "request": {
+    "method": "GET",
+    "path": "/json",
+    "query": {
+      "q": "{q}"
+    }
+  },
+  "fields": {
+    "name": "title",
+    "infohash": "magnet_uri",
+    "size_bytes": "total_size",
+    "seeders": "seeders",
+    "leechers": "leechers",
+    "first_seen": "timestamp",
+    "description_url": "link"
+  }
+}

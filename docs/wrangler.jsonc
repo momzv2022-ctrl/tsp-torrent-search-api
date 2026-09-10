@@ -1,0 +1,27 @@
+// What the "Deploy to Cloudflare" button reads.
+//
+// The button points at this folder, not at the repository, because Cloudflare
+// makes whatever folder it is pointed at the root of the new repository it
+// creates in the person's GitHub or GitLab account. Pointed here, that copy is
+// worker.js and these few files. Pointed at the repository, it would be the
+// catalogue, the fixtures, the tools and two workflows, including a weekly
+// job that commits, in an account that only wanted a search API.
+//
+// The form shows a repository name and a Worker name, both of which the person
+// can change (what it proposes for a subdirectory is not documented), and it
+// deploys `main`. The key is not in here; `.dev.vars.example` next to this
+// file is what makes the form ask for one.
+{
+  "name": "tsp-torrent-search-api",
+  "main": "worker.js",
+  "compatibility_date": "2026-09-01",
+
+  // A *.workers.dev address, which is the URL the Worker's own page then shows.
+  "workers_dev": true,
+
+  // Settings are meant to be changed in the dashboard: TSP_NSFW, TSP_INDEXES
+  // and the rest. Without this, the next build (any push to the copied
+  // repository) would deploy with none of them, because wrangler's default is
+  // to make the dashboard match the config file, and the config file has none.
+  "keep_vars": true
+}

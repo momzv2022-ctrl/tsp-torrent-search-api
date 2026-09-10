@@ -1,0 +1,475 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>TSP torrent search API: set up</title>
+<style>
+  :root { color-scheme: light dark; --ink:#111; --dim:#5f5f5f; --line:#dcdcdc; --bg:#fff; --box:#f6f6f6; --accent:#0a5; }
+  @media (prefers-color-scheme: dark) { :root { --ink:#e8e8e8; --dim:#9a9a9a; --line:#2e2e2e; --bg:#141414; --box:#1d1d1d; --accent:#3c9; } }
+  * { box-sizing: border-box; }
+  body { margin:0; padding:2.5rem 1.25rem 5rem; background:var(--bg); color:var(--ink);
+         font:15px/1.65 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; }
+  main { max-width:46rem; margin:0 auto; }
+  h1 { font-size:1.5rem; margin:0 0 .4rem; letter-spacing:-.01em; }
+  p.lede { color:var(--dim); margin:0 0 2.5rem; font-size:1.02rem; }
+  h2 { font-size:1.02rem; margin:2.5rem 0 .6rem; }
+  h2 .n { display:inline-grid; place-items:center; width:1.5rem; height:1.5rem; margin-right:.5rem;
+          border-radius:50%; background:var(--ink); color:var(--bg); font-size:.8rem; font-weight:700; vertical-align:.05em; }
+  h3 { font-size:.78rem; text-transform:uppercase; letter-spacing:.06em; color:var(--dim); margin:1.6rem 0 .4rem; font-weight:600; }
+  p, li { margin:.5rem 0; }
+  code { font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:.9em;
+         background:var(--box); border:1px solid var(--line); border-radius:4px; padding:.05em .35em; }
+  .box { font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:13px;
+         background:var(--box); border:1px solid var(--line); border-radius:7px;
+         padding:.75rem .85rem; overflow-x:auto; white-space:pre; user-select:all; display:block; }
+  button { font:inherit; font-size:.92rem; padding:.5rem 1rem; border-radius:7px; cursor:pointer;
+           border:1px solid var(--line); background:var(--box); color:var(--ink); }
+  button.go, a.go { background:var(--ink); color:var(--bg); border-color:var(--ink); font-weight:600; }
+  a.go { display:inline-block; text-decoration:none; font-size:.92rem; padding:.5rem 1rem; border-radius:7px; border:1px solid var(--ink); }
+  a.go[aria-disabled="true"] { opacity:.5; pointer-events:none; }
+  button:disabled { opacity:.5; cursor:default; }
+  .row { display:flex; gap:.6rem; align-items:center; flex-wrap:wrap; margin:.8rem 0; }
+  .said { color:var(--accent); font-size:.88rem; }
+  table { border-collapse:collapse; width:100%; font-size:13px; margin-top:.4rem; }
+  td { border-top:1px solid var(--line); padding:.35rem .6rem .35rem 0; vertical-align:top; }
+  td.k { color:var(--dim); white-space:nowrap; }
+  details { margin:.6rem 0; }
+  summary { cursor:pointer; color:var(--dim); font-size:.92rem; }
+  footer { margin-top:3.5rem; padding-top:1.2rem; border-top:1px solid var(--line); color:var(--dim); font-size:13px; }
+  a { color:inherit; text-underline-offset:2px; }
+  .hint { color:var(--dim); font-size:.9rem; }
+</style>
+</head>
+<body>
+<main>
+
+<h1>TSP torrent search API</h1>
+<p class="lede">
+  One file, run as a Cloudflare Worker, that searches __INDEX_COUNT__ public torrent
+  indexes at once and answers in TSP, the Torrent Search Protocol. Free tier is enough.
+  No account here, no build step.
+</p>
+
+<h2><span class="n">1</span>Take your key</h2>
+<p>Generated in this page, in your browser. Nothing is sent anywhere; reload and you get a different one.</p>
+<div class="row">
+  <span class="box" id="key" style="flex:1 1 22rem">…</span>
+  <button id="newkey">Regenerate</button>
+</div>
+<p class="hint">Save it. It is what your client sends; the Worker's own page shows it too.</p>
+
+<h2><span class="n">2</span>Deploy it</h2>
+
+<h3>With a Cloudflare account: one click</h3>
+<div class="row">
+  <a class="go" id="deploy" href="#" target="_blank" rel="noopener">Deploy to Cloudflare</a>
+  <span class="hint">opens dash.cloudflare.com, a free account is enough</span>
+</div>
+<ol>
+  <li>Sign in, or make an account. Cloudflare shows you the Worker it is about to create: this file, your key already in it.</li>
+  <li><strong>Deploy</strong>.</li>
+  <li>Open the Worker's URL. It shows its address, its key, and a search you can click.</li>
+</ol>
+<p class="hint">
+  That link is the one the Workers Playground's own Deploy button makes, with this file inside it.
+  Your key travels in the part after <code>#</code>, which a browser keeps to itself and never sends
+  to a server; Cloudflare's page reads it there, exactly as it would from a paste.
+</p>
+
+<h3>By hand: paste</h3>
+<p>This is <code>worker.js</code> with your key already in it, about __SIZE_HINT__ of readable JavaScript, no dependencies.</p>
+<div class="row">
+  <button class="go" id="copy">Copy worker.js</button>
+  <button id="download">Download</button>
+  <span class="said" id="said"></span>
+</div>
+<ol>
+  <li>Go to <a href="https://dash.cloudflare.com/?to=/:account/workers-and-pages/create/worker" rel="noopener">Workers &amp; Pages → Create → Worker</a>, name it, <strong>Deploy</strong>.</li>
+  <li><strong>Edit code</strong>, select everything in the editor, paste over it, <strong>Deploy</strong> again.</li>
+  <li>Open the Worker's URL. It shows its address, its key, and a search you can click.</li>
+</ol>
+<p class="hint">
+  Whichever way, that is all. The Worker holds no secrets beyond the key, keeps nothing, and stores nothing:
+  each request is asked, merged and forgotten. Its page shows the key to anyone who opens the URL, so the
+  address is the secret; if you would rather it did not, set <code>TSP_SHOW_KEY=0</code> and it shows the key
+  only when the URL carries it.
+</p>
+
+<h2><span class="n">3</span>Use it</h2>
+<span class="box" id="example">https://your-worker.workers.dev/api/v1/search?q=ubuntu&amp;apikey=…</span>
+<h3>What it answers</h3>
+<span class="box">{
+  "query": "ubuntu",
+  "count": 87,
+  "torrents": [
+    { "name": "…", "infohash": "…", "magnet": "magnet:?xt=urn:btih:…",
+      "size_bytes": 6343219200, "seeders": 165, "leechers": 12,
+      "category": "software", "sources": ["knaben", "piratebay"] }
+  ],
+  "engines": ["knaben", "piratebay", "…"]
+}</span>
+<h3>Other routes</h3>
+<table><tbody>
+  <tr><td><code>/api/v1/indexers</code></td><td class="k">what it can search, and what is on</td></tr>
+  <tr><td><code>/api/v1/health</code></td><td class="k">which catalogue it is running, no key needed</td></tr>
+  <tr><td><code>/api/v1/try?d=…</code></td><td class="k">run a descriptor that is not in the catalogue yet</td></tr>
+</tbody></table>
+<details>
+  <summary>Settings, if you want them</summary>
+  <table><tbody>
+    <tr><td><code>TSP_APIKEY</code></td><td class="k">the key. The deploy form sets it; a pasted file has it baked in; this overrides either</td></tr>
+    <tr><td><code>TSP_SHOW_KEY</code></td><td class="k"><code>0</code> to show the key only to a request that already carries it</td></tr>
+    <tr><td><code>TSP_INDEXES</code></td><td class="k">search only these, by id, comma separated; this also turns on anything switched off</td></tr>
+    <tr><td><code>TSP_NSFW</code></td><td class="k"><code>0</code> to leave adult indexes out; they are searched by default</td></tr>
+    <tr><td><code>TSP_BROWSE</code></td><td class="k"><code>0</code> to answer an empty query with nothing instead of browsing</td></tr>
+    <tr><td><code>TSP_LIMIT</code></td><td class="k">most rows per index (default 100)</td></tr>
+    <tr><td><code>TSP_TIMEOUT</code></td><td class="k">seconds to wait on one index (default 8)</td></tr>
+    <tr><td><code>TSP_FEED_URL</code></td><td class="k">a catalogue of your own</td></tr>
+    <tr><td><code>TSP_FEED</code></td><td class="k"><code>0</code> to pin the compiled catalogue and never refetch</td></tr>
+  </tbody></table>
+  <p class="hint">Set them under Settings → Variables and Secrets. Each one takes effect on the next request, and they survive a rebuild.</p>
+</details>
+
+<h2>What it searches</h2>
+<p>
+  __INDEX_COUNT__ indexes are on by default, out of __CATALOGUE_COUNT__ this project describes.
+  The list comes from <a href="https://github.com/prajwalch/TorrentSearch" rel="noopener">prajwalch/TorrentSearch</a>,
+  which tracks __UPSTREAM_COUNT__ sites, read at <code>__UPSTREAM_COMMIT__</code>.
+</p>
+<table><tbody>
+__INDEX_ROWS__
+</tbody></table>
+<p class="hint">
+  A deployed Worker refetches this list hourly, so indexes that are fixed, added or
+  retired reach it without you doing anything. What is compiled into the file
+  is only what it falls back to when the feed cannot be reached.
+</p>
+
+<footer>
+  <p>
+    Catalogue serial __SERIAL__, issued __ISSUED_AT__.
+    <code>worker.js</code> sha256 <code id="sha">__WORKER_SHA256__</code>,
+    the hash of the file in the repository, which is this file with one array filled in.
+  </p>
+  <p>
+    Source: <a href="https://github.com/momzv2022-ctrl/tsp-torrent-search-api" rel="noopener">momzv2022-ctrl/tsp-torrent-search-api</a>.
+    Sites from <a href="https://github.com/prajwalch/TorrentSearch" rel="noopener">prajwalch/TorrentSearch</a> (MIT). MIT licensed.
+  </p>
+  <p>
+    This searches public indexes and returns what they say. What you do with a magnet link
+    is yours to answer for.
+  </p>
+</footer>
+
+</main>
+<script>
+// lz-string 1.5.0 by pieroxy (MIT), `_compress` verbatim and nothing else.
+// The Cloudflare dashboard decodes the one-click link with the same library,
+// so the compressor here must be that library's, byte for byte.
+const LZ_URI_SAFE = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+-$";
+function lzCompressToEncodedURIComponent(input) {
+  if (input == null) return "";
+  return lzCompress(input, 6, (a) => LZ_URI_SAFE.charAt(a));
+}
+function lzCompress(uncompressed, bitsPerChar, getCharFromInt) {
+  if (uncompressed == null) return "";
+  var i, value,
+      context_dictionary= {},
+      context_dictionaryToCreate= {},
+      context_c="",
+      context_wc="",
+      context_w="",
+      context_enlargeIn= 2, // Compensate for the first entry which should not count
+      context_dictSize= 3,
+      context_numBits= 2,
+      context_data=[],
+      context_data_val=0,
+      context_data_position=0,
+      ii;
+
+  for (ii = 0; ii < uncompressed.length; ii += 1) {
+    context_c = uncompressed.charAt(ii);
+    if (!Object.prototype.hasOwnProperty.call(context_dictionary,context_c)) {
+      context_dictionary[context_c] = context_dictSize++;
+      context_dictionaryToCreate[context_c] = true;
+    }
+
+    context_wc = context_w + context_c;
+    if (Object.prototype.hasOwnProperty.call(context_dictionary,context_wc)) {
+      context_w = context_wc;
+    } else {
+      if (Object.prototype.hasOwnProperty.call(context_dictionaryToCreate,context_w)) {
+        if (context_w.charCodeAt(0)<256) {
+          for (i=0 ; i<context_numBits ; i++) {
+            context_data_val = (context_data_val << 1);
+            if (context_data_position == bitsPerChar-1) {
+              context_data_position = 0;
+              context_data.push(getCharFromInt(context_data_val));
+              context_data_val = 0;
+            } else {
+              context_data_position++;
+            }
+          }
+          value = context_w.charCodeAt(0);
+          for (i=0 ; i<8 ; i++) {
+            context_data_val = (context_data_val << 1) | (value&1);
+            if (context_data_position == bitsPerChar-1) {
+              context_data_position = 0;
+              context_data.push(getCharFromInt(context_data_val));
+              context_data_val = 0;
+            } else {
+              context_data_position++;
+            }
+            value = value >> 1;
+          }
+        } else {
+          value = 1;
+          for (i=0 ; i<context_numBits ; i++) {
+            context_data_val = (context_data_val << 1) | value;
+            if (context_data_position ==bitsPerChar-1) {
+              context_data_position = 0;
+              context_data.push(getCharFromInt(context_data_val));
+              context_data_val = 0;
+            } else {
+              context_data_position++;
+            }
+            value = 0;
+          }
+          value = context_w.charCodeAt(0);
+          for (i=0 ; i<16 ; i++) {
+            context_data_val = (context_data_val << 1) | (value&1);
+            if (context_data_position == bitsPerChar-1) {
+              context_data_position = 0;
+              context_data.push(getCharFromInt(context_data_val));
+              context_data_val = 0;
+            } else {
+              context_data_position++;
+            }
+            value = value >> 1;
+          }
+        }
+        context_enlargeIn--;
+        if (context_enlargeIn == 0) {
+          context_enlargeIn = Math.pow(2, context_numBits);
+          context_numBits++;
+        }
+        delete context_dictionaryToCreate[context_w];
+      } else {
+        value = context_dictionary[context_w];
+        for (i=0 ; i<context_numBits ; i++) {
+          context_data_val = (context_data_val << 1) | (value&1);
+          if (context_data_position == bitsPerChar-1) {
+            context_data_position = 0;
+            context_data.push(getCharFromInt(context_data_val));
+            context_data_val = 0;
+          } else {
+            context_data_position++;
+          }
+          value = value >> 1;
+        }
+
+
+      }
+      context_enlargeIn--;
+      if (context_enlargeIn == 0) {
+        context_enlargeIn = Math.pow(2, context_numBits);
+        context_numBits++;
+      }
+      // Add wc to the dictionary.
+      context_dictionary[context_wc] = context_dictSize++;
+      context_w = String(context_c);
+    }
+  }
+
+  // Output the code for w.
+  if (context_w !== "") {
+    if (Object.prototype.hasOwnProperty.call(context_dictionaryToCreate,context_w)) {
+      if (context_w.charCodeAt(0)<256) {
+        for (i=0 ; i<context_numBits ; i++) {
+          context_data_val = (context_data_val << 1);
+          if (context_data_position == bitsPerChar-1) {
+            context_data_position = 0;
+            context_data.push(getCharFromInt(context_data_val));
+            context_data_val = 0;
+          } else {
+            context_data_position++;
+          }
+        }
+        value = context_w.charCodeAt(0);
+        for (i=0 ; i<8 ; i++) {
+          context_data_val = (context_data_val << 1) | (value&1);
+          if (context_data_position == bitsPerChar-1) {
+            context_data_position = 0;
+            context_data.push(getCharFromInt(context_data_val));
+            context_data_val = 0;
+          } else {
+            context_data_position++;
+          }
+          value = value >> 1;
+        }
+      } else {
+        value = 1;
+        for (i=0 ; i<context_numBits ; i++) {
+          context_data_val = (context_data_val << 1) | value;
+          if (context_data_position == bitsPerChar-1) {
+            context_data_position = 0;
+            context_data.push(getCharFromInt(context_data_val));
+            context_data_val = 0;
+          } else {
+            context_data_position++;
+          }
+          value = 0;
+        }
+        value = context_w.charCodeAt(0);
+        for (i=0 ; i<16 ; i++) {
+          context_data_val = (context_data_val << 1) | (value&1);
+          if (context_data_position == bitsPerChar-1) {
+            context_data_position = 0;
+            context_data.push(getCharFromInt(context_data_val));
+            context_data_val = 0;
+          } else {
+            context_data_position++;
+          }
+          value = value >> 1;
+        }
+      }
+      context_enlargeIn--;
+      if (context_enlargeIn == 0) {
+        context_enlargeIn = Math.pow(2, context_numBits);
+        context_numBits++;
+      }
+      delete context_dictionaryToCreate[context_w];
+    } else {
+      value = context_dictionary[context_w];
+      for (i=0 ; i<context_numBits ; i++) {
+        context_data_val = (context_data_val << 1) | (value&1);
+        if (context_data_position == bitsPerChar-1) {
+          context_data_position = 0;
+          context_data.push(getCharFromInt(context_data_val));
+          context_data_val = 0;
+        } else {
+          context_data_position++;
+        }
+        value = value >> 1;
+      }
+
+
+    }
+    context_enlargeIn--;
+    if (context_enlargeIn == 0) {
+      context_enlargeIn = Math.pow(2, context_numBits);
+      context_numBits++;
+    }
+  }
+
+  // Mark the end of the stream
+  value = 2;
+  for (i=0 ; i<context_numBits ; i++) {
+    context_data_val = (context_data_val << 1) | (value&1);
+    if (context_data_position == bitsPerChar-1) {
+      context_data_position = 0;
+      context_data.push(getCharFromInt(context_data_val));
+      context_data_val = 0;
+    } else {
+      context_data_position++;
+    }
+    value = value >> 1;
+  }
+
+  // Flush the last char
+  while (true) {
+    context_data_val = (context_data_val << 1);
+    if (context_data_position == bitsPerChar-1) {
+      context_data.push(getCharFromInt(context_data_val));
+      break;
+    }
+    else context_data_position++;
+  }
+  return context_data.join('');
+}
+</script>
+<script>
+const SOURCE = __WORKER_SOURCE__;
+const BLANK = 'const BAKED_APIKEY = "";';
+
+const el = (id) => document.getElementById(id);
+const makeKey = () => [...crypto.getRandomValues(new Uint8Array(24))].map((b) => b.toString(16).padStart(2, "0")).join("");
+
+let key = makeKey();
+
+/**
+ * The one-click link: the Worker, with the key in it, inside a URL the
+ * Cloudflare dashboard knows how to open.
+ *
+ * This is what the Workers Playground's own Deploy button builds, its source
+ * is packages/workers-playground in cloudflare/workers-sdk: the modules and a
+ * metadata part as multipart form data, prefixed with the content type, and
+ * lz-string-compressed into the fragment. Built the same way here so that it
+ * decodes the same way there. Nothing leaves this page until the link is
+ * clicked, and then only to Cloudflare, in the part of the URL a browser never
+ * sends to any server.
+ */
+async function deployUrl() {
+  const form = new FormData();
+  form.set("worker.js", new Blob([keyed()], { type: "application/javascript+module" }), "worker.js");
+  form.set("metadata", new Blob([JSON.stringify({ compatibility_date: "__COMPAT_DATE__", main_module: "worker.js" })], { type: "application/json" }));
+  const response = new Response(form);
+  const hash = lzCompressToEncodedURIComponent(`${response.headers.get("content-type")}:${await response.text()}`);
+  return `https://dash.cloudflare.com/workers-and-pages/deploy/playground/__DEPLOY_NAME__#${hash}`;
+}
+
+let rendering = 0;
+function render() {
+  el("key").textContent = key;
+  el("example").textContent = `https://your-worker.workers.dev/api/v1/search?q=ubuntu&apikey=${key}`;
+  // A few tens of milliseconds; the link is disabled until it carries this key
+  // and not the last one.
+  const turn = ++rendering;
+  el("deploy").setAttribute("aria-disabled", "true");
+  deployUrl().then((url) => {
+    if (turn !== rendering) return;
+    el("deploy").href = url;
+    el("deploy").removeAttribute("aria-disabled");
+  });
+}
+
+// The one substitution this page makes. If the marker is not there exactly
+// once, it refuses rather than hand out a file with no key, or with two.
+function keyed() {
+  if (SOURCE.split(BLANK).length !== 2) throw new Error("worker.js does not carry exactly one empty key line");
+  return SOURCE.replace(BLANK, `const BAKED_APIKEY = ${JSON.stringify(key)};`);
+}
+
+let saying;
+function say(text) {
+  el("said").textContent = text;
+  clearTimeout(saying);
+  saying = setTimeout(() => { el("said").textContent = ""; }, 2500);
+}
+
+el("newkey").onclick = () => { key = makeKey(); render(); };
+
+el("copy").onclick = async () => {
+  try {
+    await navigator.clipboard.writeText(keyed());
+    say("Copied \u2014 now paste it over everything in the Cloudflare editor.");
+  } catch {
+    say("Clipboard refused. Use Download instead.");
+  }
+};
+
+el("download").onclick = () => {
+  const url = URL.createObjectURL(new Blob([keyed()], { type: "text/javascript" }));
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = "worker.js";
+  link.click();
+  URL.revokeObjectURL(url);
+  say("Downloaded worker.js.");
+};
+
+render();
+</script>
+</body>
+</html>

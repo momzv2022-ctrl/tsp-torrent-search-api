@@ -1,0 +1,33 @@
+{
+  "id": "dmhy",
+  "upstream": "dmhy",
+  "name": "Dmhy",
+  "site": "https://share.dmhy.org",
+  "kind": "rss",
+  "fixture": "dmhy.xml",
+  "enabled": true,
+  "origins": [
+    "https://share.dmhy.org"
+  ],
+  "categories": [
+    "anime",
+    "books",
+    "games",
+    "music",
+    "series",
+    "other"
+  ],
+  "request": {
+    "method": "GET",
+    "path": "/topics/rss/rss.xml",
+    "query": {
+      "keyword": "{q}"
+    }
+  },
+  "fields": {
+    "name": "title",
+    "infohash": "enclosure@url",
+    "first_seen": "pubDate",
+    "description_url": "link"
+  }
+}

@@ -1,0 +1,46 @@
+{
+  "id": "eztvx",
+  "upstream": "eztvx",
+  "name": "Eztv",
+  "site": "https://eztvx.to",
+  "kind": "json",
+  "fixture": "eztvx.json",
+  "enabled": true,
+  "match": "name",
+  "note": "Its API takes no query: every search is answered with the latest hundred uploads (measured 2026-09-10), and its HTML search page answers a data centre with 403. Kept, held to the name: a search for a current show finds this week's episodes, and a search for anything else finds nothing here rather than the week's television.",
+  "origins": [
+    "https://eztvx.to"
+  ],
+  "categories": [
+    "series"
+  ],
+  "cloudflare": true,
+  "request": {
+    "method": "GET",
+    "path": "/api/get-torrents",
+    "query": {
+      "limit": "{limit}",
+      "page": "1",
+      "Keywords": "{q}"
+    }
+  },
+  "rows": "torrents",
+  "fields": {
+    "name": "title",
+    "infohash": [
+      "hash",
+      "magnet_url"
+    ],
+    "size_bytes": {
+      "from": "size_bytes",
+      "nonzero": true
+    },
+    "seeders": "seeds",
+    "leechers": "peers",
+    "category": {
+      "const": "video"
+    },
+    "first_seen": "date_released_unix",
+    "description_url": "episode_url"
+  }
+}

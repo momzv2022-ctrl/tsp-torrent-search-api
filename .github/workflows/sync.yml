@@ -1,0 +1,85 @@
+# The clock.
+#
+# Once a week this asks prajwalch/TorrentSearch what sites it knows about now,
+# rewrites the census and the coverage report, rebuilds `docs/`, and commits,
+# but only if any of that actually changed. A week in which upstream added
+# nothing produces no commit and no noise.
+#
+# Nothing here needs a laptop. A site upstream adds appears in COVERAGE.md on
+# its own; a site that moves is flagged on its own; and because `docs/feed.json`
+# is what every deployed Worker refetches hourly, a fix committed here reaches
+# every deployment without anyone pasting anything.
+#
+# Two things worth knowing. GitHub disables scheduled workflows in a repository
+# that has seen no activity for sixty days, "Run workflow" on the Actions tab
+# starts it again, and so does any push. And if the rebuild or the tests fail,
+# the job fails and commits nothing: a broken descriptor is not published.
+
+name: sync
+
+on:
+  schedule:
+    # Mondays, 05:17 UTC. Off the hour on purpose: GitHub queues everything
+    # scheduled at :00 together, and a job that waits is a job that times out.
+    - cron: "17 5 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: sync
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Read upstream
+        run: npm run sync | tee sync.log
+
+      - name: Rebuild docs/
+        run: npm run build
+
+      - name: Check nothing broke
+        run: npm test
+
+      - name: Commit, if anything changed
+        run: |
+          set -euo pipefail
+
+          {
+            echo '### `npm run sync`'
+            echo
+            echo '```'
+            cat sync.log
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          if git diff --quiet -- catalogue upstream docs; then
+            echo "Upstream says the same thing it did last week. Nothing to commit."
+            echo >> "$GITHUB_STEP_SUMMARY"
+            echo 'Nothing changed, so nothing was committed.' >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+          printf '%s\n\n%s\n' 'Upstream moved, so the catalogue did' "$(cat sync.log)" > commit-message.txt
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add catalogue upstream docs
+          git commit -F commit-message.txt
+          git push
+
+          echo >> "$GITHUB_STEP_SUMMARY"
+          echo 'Committed. See [upstream/COVERAGE.md](upstream/COVERAGE.md) for what is still missing.' >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Clean up
+        if: always()
+        run: rm -f sync.log commit-message.txt

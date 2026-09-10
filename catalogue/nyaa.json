@@ -1,0 +1,51 @@
+{
+  "id": "nyaa",
+  "upstream": "nyaasi",
+  "name": "Nyaa",
+  "site": "https://nyaa.si",
+  "kind": "rss",
+  "fixture": "nyaa.xml",
+  "enabled": false,
+  "origins": [
+    "https://nyaa.si"
+  ],
+  "categories": [
+    "anime",
+    "apps",
+    "books",
+    "games",
+    "music",
+    "series"
+  ],
+  "note": "Rate-limits Cloudflare's addresses (HTTP 429/525, 2026-09-05); animetosho carries its releases. On only by TSP_INDEXES.",
+  "request": {
+    "method": "GET",
+    "path": "/",
+    "query": {
+      "page": "rss",
+      "q": "{q}"
+    }
+  },
+  "fields": {
+    "name": "title",
+    "infohash": "nyaa:infoHash",
+    "size_bytes": "nyaa:size",
+    "seeders": "nyaa:seeders",
+    "leechers": "nyaa:leechers",
+    "category": {
+      "from": "nyaa:categoryId",
+      "prefix": 1,
+      "map": {
+        "1": "video",
+        "2": "audio",
+        "3": "document",
+        "4": "video",
+        "5": "image",
+        "6": "software"
+      }
+    },
+    "first_seen": "pubDate",
+    "torrent_url": "link",
+    "description_url": "guid"
+  }
+}

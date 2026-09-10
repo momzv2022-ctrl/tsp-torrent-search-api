@@ -1,0 +1,6 @@
+node_modules/
+# wrangler's local state, and a real .dev.vars or .env; the .example next to
+# it is the only one that may be committed, and it must stay empty.
+.wrangler/
+.dev.vars
+.env

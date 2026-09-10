@@ -1,0 +1,948 @@
+{
+  "//": "Every site prajwalch/TorrentSearch knows about, and everything it states outright about each. Written by `npm run sync`. Data only.",
+  "upstream": {
+    "repo": "prajwalch/TorrentSearch",
+    "url": "https://github.com/prajwalch/TorrentSearch",
+    "commit": "60a70d79cb803e88f088cd7e6645711c613e2538",
+    "committed_at": "2026-09-08T11:43:12Z",
+    "dir": "app/src/main/kotlin/com/prajwalch/torrentsearch/providers"
+  },
+  "synced_at": "2026-09-09T11:28:47Z",
+  "count": 43,
+  "providers": [
+    {
+      "id": "0magnet",
+      "name": "0Magnet",
+      "site": "https://9mag.net",
+      "categories": [
+        "porn"
+      ],
+      "enabled_by_default": false,
+      "cloudflare": false,
+      "unsafe": false,
+      "unsafe_reason": null,
+      "capabilities": [
+        "TorrentDetailsProvider",
+        "MagnetUriProvider"
+      ],
+      "shape": "html",
+      "source_file": "app/src/main/kotlin/com/prajwalch/torrentsearch/providers/ZeroMagnet.kt"
+    },
+    {
+      "id": "1337x",
+      "name": "1337x",
+      "site": "https://1337x.to",
+      "categories": [
+        "anime",
+        "apps",
+        "games",
+        "movies",
+        "music",
+        "other",
+        "porn",
+        "series"
+      ],
+      "enabled_by_default": false,
+      "cloudflare": true,
+      "unsafe": false,
+      "unsafe_reason": null,
+      "capabilities": [
+        "TopTorrentsProvider",
+        "TorrentDetailsProvider",
+        "MagnetUriProvider"
+      ],
+      "shape": "html",
+      "source_file": "app/src/main/kotlin/com/prajwalch/torrentsearch/providers/ThirteenThirtySevenX.kt"
+    },
+    {
+      "id": "anilibria",
+      "name": "AniLibria",
+      "site": "https://www.anilibria.top",
+      "categories": [
+        "anime"
+      ],
+      "enabled_by_default": false,
+      "cloudflare": false,
+      "unsafe": false,
+      "unsafe_reason": null,
+      "capabilities": [],
+      "shape": "json",
+      "source_file": "app/src/main/kotlin/com/prajwalch/torrentsearch/providers/AniLibria.kt"
+    },
+    {
+      "id": "animetosho",
+      "name": "AnimeTosho",
+      "site": "https://animetosho.org",
+      "categories": [
+        "anime"
+      ],
+      "enabled_by_default": true,
+      "cloudflare": false,
+      "unsafe": false,
+      "unsafe_reason": null,
+      "capabilities": [
+        "TorrentDetailsProvider"
+      ],
+      "shape": "html",
+      "source_file": "app/src/main/kotlin/com/prajwalch/torrentsearch/providers/AnimeTosho.kt"
+    },
+    {
+      "id": "anirena",
+      "name": "AniRena",
+      "site": "https://anirena.com",
+      "categories": [
+        "anime",
+        "apps",
+        "books",
+        "music",
+        "porn",
+        "series",
+        "other"
+      ],
+      "enabled_by_default": false,
+      "cloudflare": false,
+      "unsafe": false,
+      "unsafe_reason": null,
+      "capabilities": [
+        "LatestTorrentsProvider",
+        "TopTorrentsProvider",
+        "TorrentDetailsProvider",
+        "MagnetUriProvider"
+      ],
+      "shape": "html",
+      "source_file": "app/src/main/kotlin/com/prajwalch/torrentsearch/providers/AniRena.kt"
+    },
+    {
+      "id": "audiobookbay",
+      "name": "AudioBookBay",
+      "site": "https://audiobookbay.lu",
+      "categories": [
+        "books"
+      ],
+      "enabled_by_default": false,
+      "cloudflare": false,
+      "unsafe": false,
+      "unsafe_reason": null,
+      "capabilities": [
+        "LatestTorrentsProvider",
+        "TorrentDetailsProvider",
+        "MagnetUriProvider"
+      ],
+      "shape": "html",
+      "source_file": "app/src/main/kotlin/com/prajwalch/torrentsearch/providers/AudioBookBay.kt"
+    },
+    {
+      "id": "bangumimoe",
+      "name": "BangumiMoe",
+      "site": "https://bangumi.moe",
+      "categories": [
+        "anime"
+      ],
+      "enabled_by_default": false,
+      "cloudflare": false,
+      "unsafe": false,
+      "unsafe_reason": null,
+      "capabilities": [
+        "LatestTorrentsProvider",
+        "TorrentDetailsProvider"
+      ],
+      "shape": "json",
+      "source_file": "app/src/main/kotlin/com/prajwalch/torrentsearch/providers/BangumiMoe.kt"
+    },
+    {
+      "id": "bitsearch",
+      "name": "BitSearch",
+      "site": "https://bitsearch.to",
+      "categories": [
+        "anime",
+        "apps",
+        "books",
+        "games",
+        "movies",
+        "music",
+        "porn",
+        "series",
+        "other"
+      ],
+      "enabled_by_default": false,
+      "cloudflare": false,
+      "unsafe": false,
+      "unsafe_reason": null,
+      "capabilities": [
+        "LatestTorrentsProvider",
+        "TopTorrentsProvider",
+        "TorrentDetailsProvider"
+      ],
+      "shape": "html",
+      "source_file": "app/src/main/kotlin/com/prajwalch/torrentsearch/providers/BitSearch.kt"
+    },
+    {
+      "id": "blueroms",
+      "name": "BlueRoms",
+      "site": "https://www.blueroms.ws",
+      "categories": [
+        "games"
+      ],
+      "enabled_by_default": false,
+      "cloudflare": false,
+      "unsafe": false,
+      "unsafe_reason": null,
+      "capabilities": [
+        "TorrentDetailsProvider",
+        "MagnetUriProvider"
+      ],
+      "shape": "html",
+      "source_file": "app/src/main/kotlin/com/prajwalch/torrentsearch/providers/BlueRoms.kt"
+    },
+    {
+      "id": "bt4g",
+      "name": "BT4G",
+      "site": "https://bt4gprx.com",
+      "categories": [
+        "apps",
+        "books",
+        "movies",
+        "music",
+        "other"
+      ],
+      "enabled_by_default": false,
+      "cloudflare": true,
+      "unsafe": false,
+      "unsafe_reason": null,
+      "capabilities": [
+        "LatestTorrentsProvider",
+        "TopTorrentsProvider",
+        "TorrentDetailsProvider",
+        "MagnetUriProvider"
+      ],
+      "shape": "html",
+      "source_file": "app/src/main/kotlin/com/prajwalch/torrentsearch/providers/Bt4g.kt"
+    },
+    {
+      "id": "btdigg",
+      "name": "BTDigg",
+      "site": "https://btdig.com",
+      "categories": [
+        "other"
+      ],
+      "enabled_by_default": false,
+      "cloudflare": false,
+      "unsafe": false,
+      "unsafe_reason": null,
+      "capabilities": [
+        "TorrentDetailsProvider"
+      ],
+      "shape": "html",
+      "source_file": "app/src/main/kotlin/com/prajwalch/torrentsearch/providers/BTDigg.kt"
+    },
+    {
+      "id": "btsow",
+      "name": "Btsow",
+      "site": "https://btsow.live",
+      "categories": [
+        "other"
+      ],
+      "enabled_by_default": false,
+      "cloudflare": false,
+      "unsafe": false,
+      "unsafe_reason": null,
+      "capabilities": [
+        "TorrentDetailsProvider"
+      ],
+      "shape": "json",
+      "source_file": "app/src/main/kotlin/com/prajwalch/torrentsearch/providers/Btsow.kt"
+    },
+    {
+      "id": "dmhy",
+      "name": "Dmhy",
+      "site": "https://share.dmhy.org",
+      "categories": [
+        "anime",
+        "books",
+        "games",
+        "music",
+        "series",
+        "other"
+      ],
+      "enabled_by_default": false,
+      "cloudflare": false,
+      "unsafe": false,
+      "unsafe_reason": null,
+      "capabilities": [
+        "LatestTorrentsProvider",
+        "TopTorrentsProvider",
+        "TorrentDetailsProvider"
+      ],
+      "shape": "html",
+      "source_file": "app/src/main/kotlin/com/prajwalch/torrentsearch/providers/Dmhy.kt"
+    },
+    {
+      "id": "extdotto",
+      "name": "Ext",
+      "site": "https://ext.to",
+      "categories": [
+        "anime",
+        "apps",
+        "books",
+        "games",
+        "movies",
+        "music",
+        "other",
+        "porn",
+        "series"
+      ],
+      "enabled_by_default": false,
+      "cloudflare": true,
+      "unsafe": false,
+      "unsafe_reason": null,
+      "capabilities": [
+        "LatestTorrentsProvider",
+        "TopTorrentsProvider",
+        "TorrentDetailsProvider",
+        "MagnetUriProvider"
+      ],
+      "shape": "mixed",
+      "source_file": "app/src/main/kotlin/com/prajwalch/torrentsearch/providers/Ext.kt"
+    },
+    {
+      "id": "eztvx",
+      "name": "Eztv",
+      "site": "https://eztvx.to",
+      "categories": [
+        "series"
+      ],
+      "enabled_by_default": true,
+      "cloudflare": true,
+      "unsafe": false,
+      "unsafe_reason": null,
+      "capabilities": [
+        "TorrentDetailsProvider"
+      ],
+      "shape": "html",
+      "source_file": "app/src/main/kotlin/com/prajwalch/torrentsearch/providers/Eztv.kt"
+    },
+    {
+      "id": "filemood",
+      "name": "FileMood",
+      "site": "https://filemood.com",
+      "categories": [
+        "other"
+      ],
+      "enabled_by_default": false,
+      "cloudflare": false,
+      "unsafe": false,
+      "unsafe_reason": null,
+      "capabilities": [
+        "TorrentDetailsProvider"
+      ],
+      "shape": "html",
+      "source_file": "app/src/main/kotlin/com/prajwalch/torrentsearch/providers/FileMood.kt"
+    },
+    {
+      "id": "internetarchive",
+      "name": "InternetArchive",
+      "site": "https://archive.org",
+      "categories": [
+        "apps",
+        "books",
+        "movies",
+        "other"
+      ],
+      "enabled_by_default": false,
+      "cloudflare": false,
+      "unsafe": false,
+      "unsafe_reason": null,
+      "capabilities": [
+        "TorrentDetailsProvider"
+      ],
+      "shape": "json",
+      "source_file": "app/src/main/kotlin/com/prajwalch/torrentsearch/providers/InternetArchive.kt"
+    },
+    {
+      "id": "knaben",
+      "name": "Knaben",
+      "site": "https://knaben.org",
+      "categories": [
+        "anime",
+        "apps",
+        "books",
+        "games",
+        "movies",
+        "music",
+        "other",
+        "porn",
+        "series"
+      ],
+      "enabled_by_default": true,
+      "cloudflare": false,
+      "unsafe": false,
+      "unsafe_reason": null,
+      "capabilities": [
+        "LatestTorrentsProvider",
+        "TopTorrentsProvider"
+      ],
+      "shape": "json",
+      "source_file": "app/src/main/kotlin/com/prajwalch/torrentsearch/providers/Knaben.kt"
+    },
+    {
+      "id": "limetorrents",
+      "name": "LimeTorrents",
+      "site": "https://limetorrents.fun",
+      "categories": [
+        "anime",
+        "apps",
+        "games",
+        "movies",
+        "music",
+        "series",
+        "other"
+      ],
+      "enabled_by_default": false,
+      "cloudflare": false,
+      "unsafe": true,
+      "unsafe_reason": "limetorrents_unsafe_reason",
+      "capabilities": [
+        "LatestTorrentsProvider",
+        "TopTorrentsProvider",
+        "TorrentDetailsProvider"
+      ],
+      "shape": "html",
+      "source_file": "app/src/main/kotlin/com/prajwalch/torrentsearch/providers/LimeTorrents.kt"
+    },
+    {
+      "id": "linuxtracker",
+      "name": "LinuxTracker",
+      "site": "https://linuxtracker.org",
+      "categories": [
+        "apps"
+      ],
+      "enabled_by_default": false,
+      "cloudflare": false,
+      "unsafe": false,
+      "unsafe_reason": null,
+      "capabilities": [
+        "LatestTorrentsProvider",
+        "TopTorrentsProvider",
+        "TorrentDetailsProvider"
+      ],
+      "shape": "html",
+      "source_file": "app/src/main/kotlin/com/prajwalch/torrentsearch/providers/LinuxTracker.kt"
+    },
+    {
+      "id": "megapeer",
+      "name": "MegaPeer",
+      "site": "https://megapeer.vip",
+      "categories": [
+        "apps",
+        "books",
+        "games",
+        "movies",
+        "music",
+        "other",
+        "series"
+      ],
+      "enabled_by_default": false,
+      "cloudflare": false,
+      "unsafe": false,
+      "unsafe_reason": null,
+      "capabilities": [
+        "TorrentDetailsProvider"
+      ],
+      "shape": "html",
+      "source_file": "app/src/main/kotlin/com/prajwalch/torrentsearch/providers/MegaPeer.kt"
+    },
+    {
+      "id": "mikanproject",
+      "name": "Mikan",
+      "site": "https://mikanani.me",
+      "categories": [
+        "anime"
+      ],
+      "enabled_by_default": false,
+      "cloudflare": false,
+      "unsafe": false,
+      "unsafe_reason": null,
+      "capabilities": [
+        "TorrentDetailsProvider"
+      ],
+      "shape": "html",
+      "source_file": "app/src/main/kotlin/com/prajwalch/torrentsearch/providers/Mikan.kt"
+    },
+    {
+      "id": "mypornclub",
+      "name": "MyPornClub",
+      "site": "https://myporn.club",
+      "categories": [
+        "porn"
+      ],
+      "enabled_by_default": false,
+      "cloudflare": false,
+      "unsafe": false,
+      "unsafe_reason": null,
+      "capabilities": [
+        "LatestTorrentsProvider",
+        "TopTorrentsProvider",
+        "TorrentDetailsProvider",
+        "MagnetUriProvider"
+      ],
+      "shape": "html",
+      "source_file": "app/src/main/kotlin/com/prajwalch/torrentsearch/providers/MyPornClub.kt"
+    },
+    {
+      "id": "nekobt",
+      "name": "NekoBT",
+      "site": "https://nekobt.to",
+      "categories": [
+        "anime"
+      ],
+      "enabled_by_default": false,
+      "cloudflare": false,
+      "unsafe": false,
+      "unsafe_reason": null,
+      "capabilities": [
+        "LatestTorrentsProvider",
+        "TopTorrentsProvider",
+        "TorrentDetailsProvider"
+      ],
+      "shape": "html",
+      "source_file": "app/src/main/kotlin/com/prajwalch/torrentsearch/providers/NekoBT.kt"
+    },
+    {
+      "id": "nyaasi",
+      "name": "Nyaa",
+      "site": "https://nyaa.si",
+      "categories": [
+        "anime",
+        "apps",
+        "books",
+        "games",
+        "music",
+        "series"
+      ],
+      "enabled_by_default": true,
+      "cloudflare": false,
+      "unsafe": false,
+      "unsafe_reason": null,
+      "capabilities": [
+        "LatestTorrentsProvider",
+        "TopTorrentsProvider",
+        "TorrentDetailsProvider"
+      ],
+      "shape": "html",
+      "source_file": "app/src/main/kotlin/com/prajwalch/torrentsearch/providers/Nyaa.kt"
+    },
+    {
+      "id": "oxtorrent",
+      "name": "OxTorrent",
+      "site": "https://oxtorrent.co",
+      "categories": [
+        "apps",
+        "books",
+        "games",
+        "movies",
+        "music",
+        "series"
+      ],
+      "enabled_by_default": false,
+      "cloudflare": false,
+      "unsafe": false,
+      "unsafe_reason": null,
+      "capabilities": [
+        "LatestTorrentsProvider",
+        "TopTorrentsProvider",
+        "TorrentDetailsProvider",
+        "MagnetUriProvider"
+      ],
+      "shape": "html",
+      "source_file": "app/src/main/kotlin/com/prajwalch/torrentsearch/providers/OxTorrent.kt"
+    },
+    {
+      "id": "rutorinfo",
+      "name": "Rutor",
+      "site": "https://rutor.info",
+      "categories": [
+        "anime",
+        "apps",
+        "books",
+        "games",
+        "movies",
+        "music",
+        "other",
+        "series"
+      ],
+      "enabled_by_default": false,
+      "cloudflare": false,
+      "unsafe": false,
+      "unsafe_reason": null,
+      "capabilities": [
+        "LatestTorrentsProvider",
+        "TopTorrentsProvider",
+        "TorrentDetailsProvider"
+      ],
+      "shape": "html",
+      "source_file": "app/src/main/kotlin/com/prajwalch/torrentsearch/providers/Rutor.kt"
+    },
+    {
+      "id": "subsplease",
+      "name": "SubsPlease",
+      "site": "https://subsplease.org",
+      "categories": [
+        "anime"
+      ],
+      "enabled_by_default": false,
+      "cloudflare": false,
+      "unsafe": false,
+      "unsafe_reason": null,
+      "capabilities": [
+        "LatestTorrentsProvider",
+        "TorrentDetailsProvider"
+      ],
+      "shape": "mixed",
+      "source_file": "app/src/main/kotlin/com/prajwalch/torrentsearch/providers/SubsPlease.kt"
+    },
+    {
+      "id": "sukebeinyaa",
+      "name": "Sukebei",
+      "site": "https://sukebei.nyaa.si",
+      "categories": [
+        "porn"
+      ],
+      "enabled_by_default": false,
+      "cloudflare": false,
+      "unsafe": false,
+      "unsafe_reason": null,
+      "capabilities": [
+        "LatestTorrentsProvider",
+        "TopTorrentsProvider",
+        "TorrentDetailsProvider"
+      ],
+      "shape": "html",
+      "source_file": "app/src/main/kotlin/com/prajwalch/torrentsearch/providers/Sukebei.kt"
+    },
+    {
+      "id": "thepiratebay",
+      "name": "ThePirateBay",
+      "site": "https://thepiratebay.org",
+      "categories": [
+        "apps",
+        "books",
+        "games",
+        "movies",
+        "music",
+        "porn",
+        "series",
+        "other"
+      ],
+      "enabled_by_default": false,
+      "cloudflare": false,
+      "unsafe": true,
+      "unsafe_reason": "tpb_unsafe_reason",
+      "capabilities": [
+        "LatestTorrentsProvider",
+        "TopTorrentsProvider",
+        "TorrentDetailsProvider"
+      ],
+      "shape": "json",
+      "source_file": "app/src/main/kotlin/com/prajwalch/torrentsearch/providers/ThePirateBay.kt"
+    },
+    {
+      "id": "therarbag",
+      "name": "TheRarBg",
+      "site": "https://therarbg.com",
+      "categories": [
+        "anime",
+        "apps",
+        "books",
+        "games",
+        "movies",
+        "music",
+        "porn",
+        "series",
+        "other"
+      ],
+      "enabled_by_default": false,
+      "cloudflare": false,
+      "unsafe": true,
+      "unsafe_reason": "therarbg_unsafe_reason",
+      "capabilities": [
+        "LatestTorrentsProvider",
+        "TopTorrentsProvider",
+        "TorrentDetailsProvider",
+        "MagnetUriProvider"
+      ],
+      "shape": "html",
+      "source_file": "app/src/main/kotlin/com/prajwalch/torrentsearch/providers/TheRarBg.kt"
+    },
+    {
+      "id": "tokyotoshokan",
+      "name": "TokyoToshokan",
+      "site": "https://tokyotosho.info",
+      "categories": [
+        "anime",
+        "books",
+        "music",
+        "porn",
+        "other"
+      ],
+      "enabled_by_default": true,
+      "cloudflare": false,
+      "unsafe": false,
+      "unsafe_reason": null,
+      "capabilities": [
+        "LatestTorrentsProvider",
+        "TopTorrentsProvider",
+        "TorrentDetailsProvider"
+      ],
+      "shape": "html",
+      "source_file": "app/src/main/kotlin/com/prajwalch/torrentsearch/providers/TokyoToshokan.kt"
+    },
+    {
+      "id": "torrent9",
+      "name": "Torrent9",
+      "site": "https://www6.torrent9.to",
+      "categories": [
+        "apps",
+        "books",
+        "games",
+        "movies",
+        "music",
+        "series"
+      ],
+      "enabled_by_default": false,
+      "cloudflare": false,
+      "unsafe": false,
+      "unsafe_reason": null,
+      "capabilities": [
+        "LatestTorrentsProvider",
+        "TopTorrentsProvider",
+        "TorrentDetailsProvider",
+        "MagnetUriProvider"
+      ],
+      "shape": "html",
+      "source_file": "app/src/main/kotlin/com/prajwalch/torrentsearch/providers/Torrent9.kt"
+    },
+    {
+      "id": "torrentdatabase",
+      "name": "TorrentDatabase",
+      "site": "https://developify.ca",
+      "categories": [
+        "apps",
+        "books",
+        "games",
+        "movies",
+        "music",
+        "porn",
+        "series"
+      ],
+      "enabled_by_default": false,
+      "cloudflare": true,
+      "unsafe": false,
+      "unsafe_reason": null,
+      "capabilities": [
+        "LatestTorrentsProvider",
+        "TopTorrentsProvider",
+        "TorrentDetailsProvider"
+      ],
+      "shape": "html",
+      "source_file": "app/src/main/kotlin/com/prajwalch/torrentsearch/providers/TorrentDatabase.kt"
+    },
+    {
+      "id": "torrentdownloadinfo",
+      "name": "TorrentDownload",
+      "site": "https://torrentdownload.info",
+      "categories": [
+        "anime",
+        "apps",
+        "books",
+        "games",
+        "movies",
+        "music",
+        "porn",
+        "series",
+        "other"
+      ],
+      "enabled_by_default": false,
+      "cloudflare": false,
+      "unsafe": false,
+      "unsafe_reason": null,
+      "capabilities": [
+        "LatestTorrentsProvider",
+        "TopTorrentsProvider",
+        "TorrentDetailsProvider"
+      ],
+      "shape": "html",
+      "source_file": "app/src/main/kotlin/com/prajwalch/torrentsearch/providers/TorrentDownload.kt"
+    },
+    {
+      "id": "torrentdownloads",
+      "name": "TorrentDownloads",
+      "site": "https://torrentdownloads.pro",
+      "categories": [
+        "anime",
+        "apps",
+        "books",
+        "games",
+        "movies",
+        "music",
+        "series",
+        "other"
+      ],
+      "enabled_by_default": true,
+      "cloudflare": true,
+      "unsafe": false,
+      "unsafe_reason": null,
+      "capabilities": [
+        "LatestTorrentsProvider",
+        "TopTorrentsProvider",
+        "TorrentDetailsProvider",
+        "MagnetUriProvider"
+      ],
+      "shape": "html",
+      "source_file": "app/src/main/kotlin/com/prajwalch/torrentsearch/providers/TorrentDownloads.kt"
+    },
+    {
+      "id": "torrentkitty",
+      "name": "TorrentKitty",
+      "site": "https://torrentkitty.tv",
+      "categories": [
+        "other"
+      ],
+      "enabled_by_default": false,
+      "cloudflare": false,
+      "unsafe": false,
+      "unsafe_reason": null,
+      "capabilities": [
+        "TorrentDetailsProvider"
+      ],
+      "shape": "html",
+      "source_file": "app/src/main/kotlin/com/prajwalch/torrentsearch/providers/TorrentKitty.kt"
+    },
+    {
+      "id": "torrentscsv",
+      "name": "TorrentsCSV",
+      "site": "https://torrents-csv.com",
+      "categories": [
+        "other"
+      ],
+      "enabled_by_default": true,
+      "cloudflare": false,
+      "unsafe": false,
+      "unsafe_reason": null,
+      "capabilities": [],
+      "shape": "json",
+      "source_file": "app/src/main/kotlin/com/prajwalch/torrentsearch/providers/TorrentsCSV.kt"
+    },
+    {
+      "id": "torrentz",
+      "name": "Torrentz",
+      "site": "https://torrentz2.nz",
+      "categories": [
+        "other",
+        "movies",
+        "series",
+        "anime",
+        "apps",
+        "games",
+        "music",
+        "books",
+        "porn"
+      ],
+      "enabled_by_default": false,
+      "cloudflare": false,
+      "unsafe": false,
+      "unsafe_reason": null,
+      "capabilities": [
+        "LatestTorrentsProvider",
+        "TopTorrentsProvider",
+        "TorrentDetailsProvider",
+        "MagnetUriProvider"
+      ],
+      "shape": "html",
+      "source_file": "app/src/main/kotlin/com/prajwalch/torrentsearch/providers/Torrentz.kt"
+    },
+    {
+      "id": "uindex",
+      "name": "UIndex",
+      "site": "https://uindex.org",
+      "categories": [
+        "anime",
+        "apps",
+        "games",
+        "movies",
+        "music",
+        "porn",
+        "series",
+        "other"
+      ],
+      "enabled_by_default": true,
+      "cloudflare": true,
+      "unsafe": false,
+      "unsafe_reason": null,
+      "capabilities": [
+        "LatestTorrentsProvider",
+        "TopTorrentsProvider",
+        "TorrentDetailsProvider"
+      ],
+      "shape": "html",
+      "source_file": "app/src/main/kotlin/com/prajwalch/torrentsearch/providers/UIndex.kt"
+    },
+    {
+      "id": "xxxclub",
+      "name": "XXXClub",
+      "site": "https://xxxclub.to",
+      "categories": [
+        "porn"
+      ],
+      "enabled_by_default": false,
+      "cloudflare": false,
+      "unsafe": false,
+      "unsafe_reason": null,
+      "capabilities": [
+        "LatestTorrentsProvider",
+        "TopTorrentsProvider",
+        "TorrentDetailsProvider",
+        "MagnetUriProvider"
+      ],
+      "shape": "html",
+      "source_file": "app/src/main/kotlin/com/prajwalch/torrentsearch/providers/XXXClub.kt"
+    },
+    {
+      "id": "xxxtracker",
+      "name": "XXXTracker",
+      "site": "https://xxxtor.com",
+      "categories": [
+        "porn"
+      ],
+      "enabled_by_default": false,
+      "cloudflare": false,
+      "unsafe": false,
+      "unsafe_reason": null,
+      "capabilities": [
+        "LatestTorrentsProvider",
+        "TopTorrentsProvider",
+        "TorrentDetailsProvider"
+      ],
+      "shape": "html",
+      "source_file": "app/src/main/kotlin/com/prajwalch/torrentsearch/providers/XXXTracker.kt"
+    },
+    {
+      "id": "ytsmx",
+      "name": "Yts",
+      "site": "https://yts.bz",
+      "categories": [
+        "movies"
+      ],
+      "enabled_by_default": true,
+      "cloudflare": false,
+      "unsafe": false,
+      "unsafe_reason": null,
+      "capabilities": [
+        "LatestTorrentsProvider",
+        "TopTorrentsProvider",
+        "TorrentDetailsProvider"
+      ],
+      "shape": "json",
+      "source_file": "app/src/main/kotlin/com/prajwalch/torrentsearch/providers/Yts.kt"
+    }
+  ]
+}

@@ -1,0 +1,7 @@
+# Travels with the copy the Deploy to Cloudflare button makes, which has no
+# other .gitignore. A real .dev.vars or .env holds the key; only the .example
+# may be committed, and it must stay empty.
+.wrangler/
+.dev.vars
+.env
+node_modules/

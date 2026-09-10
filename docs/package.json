@@ -1,0 +1,14 @@
+{
+  "name": "tsp-torrent-search-api",
+  "private": true,
+  "type": "module",
+  "description": "Present for one reason: the `cloudflare.bindings` entry is the text the Deploy to Cloudflare form shows beside TSP_APIKEY. There is nothing to install and nothing to build; the button deploys worker.js as it is. (`type` is here because this file shadows the repository's own for worker.js, and Node would otherwise guess.)",
+  "license": "MIT",
+  "cloudflare": {
+    "bindings": {
+      "TSP_APIKEY": {
+        "description": "The key your client will send. Any long random string; the [setup page](https://momzv2022-ctrl.github.io/tsp-torrent-search-api/) generates one. Save it: the Worker's own page shows it back only to a request that already has it."
+      }
+    }
+  }
+}

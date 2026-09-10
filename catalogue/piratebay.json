@@ -1,0 +1,58 @@
+{
+  "id": "piratebay",
+  "upstream": "thepiratebay",
+  "name": "ThePirateBay",
+  "site": "https://thepiratebay.org",
+  "kind": "json",
+  "fixture": "piratebay.json",
+  "enabled": true,
+  "origins": [
+    "https://apibay.org"
+  ],
+  "categories": [
+    "apps",
+    "books",
+    "games",
+    "movies",
+    "music",
+    "porn",
+    "series",
+    "other"
+  ],
+  "request": {
+    "method": "GET",
+    "path": "/q.php",
+    "query": {
+      "q": "{q}"
+    }
+  },
+  "fields": {
+    "name": "name",
+    "infohash": "info_hash",
+    "size_bytes": {
+      "from": "size",
+      "nonzero": true
+    },
+    "files": {
+      "from": "num_files",
+      "nonzero": true
+    },
+    "seeders": "seeders",
+    "leechers": "leechers",
+    "category": {
+      "from": "category",
+      "prefix": 1,
+      "map": {
+        "1": "audio",
+        "2": "video",
+        "3": "software",
+        "4": "software"
+      }
+    },
+    "first_seen": "added",
+    "description_url": {
+      "template": "https://thepiratebay.org/description.php?id={value}",
+      "from": "id"
+    }
+  }
+}

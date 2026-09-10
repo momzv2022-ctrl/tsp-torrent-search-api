@@ -1,0 +1,48 @@
+{
+  "id": "bitsearch",
+  "upstream": "bitsearch",
+  "name": "BitSearch",
+  "site": "https://bitsearch.to",
+  "kind": "json",
+  "fixture": "bitsearch.json",
+  "enabled": false,
+  "origins": [
+    "https://bitsearch.to",
+    "https://bitsearch.eu",
+    "https://solidtorrents.to"
+  ],
+  "categories": [
+    "anime",
+    "apps",
+    "books",
+    "games",
+    "movies",
+    "music",
+    "porn",
+    "series",
+    "other"
+  ],
+  "note": "Refuses Cloudflare's addresses (HTTP 429 / interstitial, 2026-09-05); on only by TSP_INDEXES.",
+  "request": {
+    "method": "GET",
+    "path": "/api/v1/search",
+    "query": {
+      "q": "{q}",
+      "category": "all",
+      "sort": "seeders"
+    }
+  },
+  "rows": "results",
+  "fields": {
+    "name": "title",
+    "infohash": "infohash",
+    "size_bytes": "size",
+    "seeders": "seeders",
+    "leechers": "leechers",
+    "first_seen": "createdAt",
+    "description_url": {
+      "template": "https://bitsearch.eu/torrent/{value}",
+      "from": "id"
+    }
+  }
+}

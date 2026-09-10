@@ -1,0 +1,26 @@
+# Every push, and every pull request.
+#
+# `npm test` is the whole check: every descriptor is one a Worker would accept,
+# every descriptor still reads its own recorded response, and `docs/` is what
+# the sources currently say. No dependencies to install, so there is nothing to
+# cache and nothing to go stale.
+
+name: test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - run: npm test

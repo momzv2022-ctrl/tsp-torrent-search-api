@@ -1,0 +1,43 @@
+{
+  "id": "torrentdownloads",
+  "upstream": "torrentdownloads",
+  "name": "TorrentDownloads",
+  "site": "https://www.torrentdownloads.pro",
+  "kind": "rss",
+  "fixture": "torrentdownloads.xml",
+  "enabled": false,
+  "origins": [
+    "https://www.torrentdownloads.pro"
+  ],
+  "categories": [
+    "anime",
+    "apps",
+    "books",
+    "games",
+    "movies",
+    "music",
+    "series",
+    "other"
+  ],
+  "cloudflare": true,
+  "note": "Never answers a Cloudflare Worker (2026-09-05, times out); on only by TSP_INDEXES.",
+  "request": {
+    "method": "GET",
+    "path": "/rss.xml",
+    "query": {
+      "type": "search",
+      "search": "{q}"
+    }
+  },
+  "fields": {
+    "name": "title",
+    "infohash": "info_hash",
+    "size_bytes": "size",
+    "seeders": "seeders",
+    "leechers": "leechers",
+    "first_seen": "pubDate",
+    "description_url": {
+      "from": "link"
+    }
+  }
+}

@@ -1,0 +1,54 @@
+{
+  "id": "torrentdownload",
+  "upstream": "torrentdownloadinfo",
+  "name": "TorrentDownload",
+  "site": "https://www.torrentdownload.info",
+  "kind": "html",
+  "fixture": "torrentdownload.html",
+  "enabled": false,
+  "origins": [
+    "https://www.torrentdownload.info"
+  ],
+  "categories": [
+    "anime",
+    "apps",
+    "books",
+    "games",
+    "movies",
+    "music",
+    "porn",
+    "series",
+    "other"
+  ],
+  "note": "Fabricates results, writes the query into unrelated release names (seen 2026-09-05). Left off on purpose; not a site to enable.",
+  "request": {
+    "method": "GET",
+    "path": "/search",
+    "query": {
+      "q": "{q}"
+    }
+  },
+  "rows": "table.table2 tr",
+  "fields": {
+    "name": {
+      "sel": "td.tdleft a"
+    },
+    "infohash": {
+      "sel": "td.tdleft a",
+      "attr": "href"
+    },
+    "size_bytes": {
+      "cell": 3
+    },
+    "seeders": {
+      "sel": "td.tdseed"
+    },
+    "leechers": {
+      "sel": "td.tdleech"
+    },
+    "description_url": {
+      "sel": "td.tdleft a",
+      "attr": "href"
+    }
+  }
+}

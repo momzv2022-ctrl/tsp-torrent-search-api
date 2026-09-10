@@ -1,0 +1,40 @@
+{
+  "id": "torrentkitty",
+  "upstream": "torrentkitty",
+  "name": "TorrentKitty",
+  "site": "https://www.torrentkitty.tv",
+  "kind": "html",
+  "fixture": "torrentkitty.html",
+  "enabled": false,
+  "origins": [
+    "https://www.torrentkitty.tv"
+  ],
+  "categories": [
+    "other"
+  ],
+  "note": "HTTP 403 to Cloudflare's addresses (2026-09-05); on only by TSP_INDEXES.",
+  "request": {
+    "method": "GET",
+    "path": "/search/{q}/"
+  },
+  "rows": "table#archiveResult tr",
+  "fields": {
+    "name": {
+      "sel": "td.name"
+    },
+    "infohash": {
+      "sel": "td.action a[href^='magnet:']",
+      "attr": "href"
+    },
+    "size_bytes": {
+      "sel": "td.size"
+    },
+    "first_seen": {
+      "sel": "td.date"
+    },
+    "description_url": {
+      "sel": "td.action a[href^='/information/']",
+      "attr": "href"
+    }
+  }
+}

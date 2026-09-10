@@ -1,0 +1,65 @@
+{
+  "id": "knaben",
+  "upstream": "knaben",
+  "name": "Knaben",
+  "site": "https://knaben.org",
+  "kind": "json",
+  "fixture": "knaben.json",
+  "enabled": true,
+  "origins": [
+    "https://api.knaben.org",
+    "https://api.knaben.eu"
+  ],
+  "categories": [
+    "anime",
+    "apps",
+    "books",
+    "games",
+    "movies",
+    "music",
+    "other",
+    "porn",
+    "series"
+  ],
+  "request": {
+    "method": "POST",
+    "path": "/v1",
+    "body": {
+      "search_type": "100%",
+      "search_field": "title",
+      "query": "{q}",
+      "order_by": "seeders",
+      "order_direction": "desc",
+      "from": 0,
+      "size": "{limit}",
+      "hide_unsafe": true
+    }
+  },
+  "rows": "hits",
+  "fields": {
+    "name": "title",
+    "infohash": [
+      "hash",
+      "magnetUrl"
+    ],
+    "size_bytes": "bytes",
+    "seeders": "seeders",
+    "leechers": "peers",
+    "first_seen": "date",
+    "description_url": "details",
+    "category": {
+      "from": "categoryId",
+      "re": "^(\\d+)",
+      "map": {
+        "1000000": "audio",
+        "2000000": "video",
+        "3000000": "video",
+        "4000000": "software",
+        "5000000": "video",
+        "6000000": "video",
+        "7000000": "software",
+        "9000000": "document"
+      }
+    }
+  }
+}

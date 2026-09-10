@@ -1,0 +1,16 @@
+{
+  "name": "tsp-torrent-search-api",
+  "private": true,
+  "type": "module",
+  "description": "Present so Node reads the .js files as ES modules. No dependencies, no install step, no lockfile.",
+  "license": "MIT",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "sync": "node worker/tools/sync.mjs",
+    "build": "node worker/tools/build.mjs",
+    "test": "node --test worker/tests/*.test.mjs",
+    "probe": "node worker/tools/probe.mjs"
+  }
+}

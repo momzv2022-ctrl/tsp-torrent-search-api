@@ -1,0 +1,54 @@
+{
+  "id": "rutor",
+  "upstream": "rutorinfo",
+  "name": "Rutor",
+  "site": "https://rutor.info",
+  "kind": "html",
+  "fixture": "rutor.html",
+  "enabled": true,
+  "origins": [
+    "https://rutor.info",
+    "https://rutor.is"
+  ],
+  "categories": [
+    "anime",
+    "apps",
+    "books",
+    "games",
+    "movies",
+    "music",
+    "other",
+    "series"
+  ],
+  "request": {
+    "method": "GET",
+    "path": "/search/0/0/100/0/{q}"
+  },
+  "rows": "div#index tr.gai, div#index tr.tum",
+  "fields": {
+    "name": {
+      "sel": "a[href^='/torrent/']"
+    },
+    "infohash": {
+      "sel": "a[href^='magnet:']",
+      "attr": "href"
+    },
+    "size_bytes": {
+      "cell": -2
+    },
+    "seeders": {
+      "sel": "span.green"
+    },
+    "leechers": {
+      "sel": "span.red"
+    },
+    "torrent_url": {
+      "sel": "a.downgif",
+      "attr": "href"
+    },
+    "description_url": {
+      "sel": "a[href^='/torrent/']",
+      "attr": "href"
+    }
+  }
+}

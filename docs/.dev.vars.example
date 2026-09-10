@@ -1,0 +1,8 @@
+# The form behind the "Deploy to Cloudflare" button asks for every name in this
+# file (at the time of writing, 2026-09, as a required field) and pre-fills
+# whatever is written after the `=`, which is why nothing is: a key written
+# here would be the same key in every deployment that accepted the default.
+#
+# Any long random string will do. The setup page generates one:
+# https://momzv2022-ctrl.github.io/tsp-torrent-search-api/
+TSP_APIKEY=

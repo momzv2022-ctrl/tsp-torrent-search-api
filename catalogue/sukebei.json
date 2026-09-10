@@ -1,0 +1,34 @@
+{
+  "id": "sukebei",
+  "upstream": "sukebeinyaa",
+  "name": "Sukebei",
+  "site": "https://sukebei.nyaa.si",
+  "kind": "rss",
+  "fixture": "sukebei.xml",
+  "enabled": true,
+  "origins": [
+    "https://sukebei.nyaa.si"
+  ],
+  "categories": [
+    "porn"
+  ],
+  "nsfw": true,
+  "request": {
+    "method": "GET",
+    "path": "/",
+    "query": {
+      "page": "rss",
+      "q": "{q}"
+    }
+  },
+  "fields": {
+    "name": "title",
+    "infohash": "nyaa:infoHash",
+    "size_bytes": "nyaa:size",
+    "seeders": "nyaa:seeders",
+    "leechers": "nyaa:leechers",
+    "first_seen": "pubDate",
+    "torrent_url": "link",
+    "description_url": "guid"
+  }
+}
