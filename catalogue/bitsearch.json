@@ -6,10 +6,10 @@
   "kind": "json",
   "fixture": "bitsearch.json",
   "enabled": false,
+  "note": "Off because it rate-limits Cloudflare's addresses: 12 of 12 tries from a Worker answered 429 on 2026-09-11 (both origins; one try earlier that day got through), as on 2026-09-05. A pity, because it is a DHT-wide index that sees releases nothing else here does. solidtorrents.to is a redirect chain to bitsearch.eu that times out from a data centre, so it is no longer listed.",
   "origins": [
-    "https://bitsearch.to",
     "https://bitsearch.eu",
-    "https://solidtorrents.to"
+    "https://bitsearch.to"
   ],
   "categories": [
     "anime",
@@ -22,7 +22,6 @@
     "series",
     "other"
   ],
-  "note": "Refuses Cloudflare's addresses (HTTP 429 / interstitial, 2026-09-05); on only by TSP_INDEXES.",
   "request": {
     "method": "GET",
     "path": "/api/v1/search",

@@ -1,9 +1,9 @@
 {
   "//": "The catalogue of tsp-torrent-search-api. Built from catalogue/*.json by `npm run build`; every deployment refetches it hourly. Data only.",
   "tsp_feed_version": 1,
-  "serial": 4,
-  "issued_at": "2026-09-10T13:30:53Z",
-  "expires_at": "2027-03-09T13:30:53Z",
+  "serial": 5,
+  "issued_at": "2026-09-11T07:05:25Z",
+  "expires_at": "2027-03-10T07:05:25Z",
   "upstream": {
     "repo": "prajwalch/TorrentSearch",
     "url": "https://github.com/prajwalch/TorrentSearch",
@@ -53,9 +53,8 @@
       "kind": "json",
       "enabled": false,
       "origins": [
-        "https://bitsearch.to",
         "https://bitsearch.eu",
-        "https://solidtorrents.to"
+        "https://bitsearch.to"
       ],
       "categories": [
         "anime",
@@ -481,7 +480,8 @@
       "name": "TorrentDownloads",
       "site": "https://www.torrentdownloads.pro",
       "kind": "rss",
-      "enabled": false,
+      "enabled": true,
+      "match": "name",
       "origins": [
         "https://www.torrentdownloads.pro"
       ],

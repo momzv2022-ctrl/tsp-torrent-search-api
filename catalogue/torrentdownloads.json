@@ -5,7 +5,9 @@
   "site": "https://www.torrentdownloads.pro",
   "kind": "rss",
   "fixture": "torrentdownloads.xml",
-  "enabled": false,
+  "enabled": true,
+  "match": "name",
+  "note": "Searches any word of the query (\"Bethlehem Kudumba Unit\" answered with fifty Law & Order episodes), so it is held to the name. Answers Cloudflare's addresses as of 2026-09-11, with a 521 now and then; on 2026-09-05 it did not. Carries Indian regional releases the other reachable indexes lack.",
   "origins": [
     "https://www.torrentdownloads.pro"
   ],
@@ -20,7 +22,6 @@
     "other"
   ],
   "cloudflare": true,
-  "note": "Never answers a Cloudflare Worker (2026-09-05, times out); on only by TSP_INDEXES.",
   "request": {
     "method": "GET",
     "path": "/rss.xml",

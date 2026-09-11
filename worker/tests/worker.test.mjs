@@ -415,6 +415,25 @@ test("a search asks every enabled index and merges what comes back", async () =>
   assert.ok(shared.scraped_at);
 });
 
+test("TSP_TIMEOUT is the wait for one index, all of its mirrors together", async () => {
+  // Four mirrors that each hang used to cost four timeouts in a row; a
+  // search was as slow as that. Now a mirror that hangs uses the index's
+  // whole turn, and the rest are not tried.
+  const feed = feedBody({ indexes: [{ id: "slow", kind: "json", origins: ["https://m1.example", "https://m2.example", "https://m3.example"], fields: { name: "n", infohash: "h" } }] });
+  const hang = (url, init) => new Promise((resolve, reject) => {
+    if (String(url).includes("feed.json")) return resolve(new Response(feed));
+    init.signal.addEventListener("abort", () => reject(Object.assign(new Error("aborted"), { name: "AbortError" })));
+  });
+  globalThis.fetch = hang;
+  const started = Date.now();
+  const body = await (await call("/api/v1/search?q=anything", { TSP_TIMEOUT: "1" })).json();
+  const took = Date.now() - started;
+  assert.ok(took < 2500, `took ${took} ms; one clock for the index, not one per mirror`);
+  assert.equal(body.count, 0);
+  assert.match(body.failures.slow[0], /timed out/);
+  assert.match(body.failures.slow[1], /not tried, no time left/);
+});
+
 test("an index that fails is reported, and does not fail the search", async () => {
   stubFetch({
     "feed.json": { body: catalogueFeed() },

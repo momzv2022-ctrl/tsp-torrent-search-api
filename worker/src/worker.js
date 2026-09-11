@@ -1148,9 +1148,21 @@ function matchesQuery(descriptor, row, query) {
 async function askIndex(descriptor, query, settings, nowMs) {
   const problems = [];
 
+  // One clock for the index, not one per origin. The setting is documented
+  // as the wait for one index, and a search is as slow as its slowest index:
+  // with a clock per origin, YTS's four dead mirrors held a search for thirty
+  // seconds. A mirror that fails fast still leaves time for the next one; a
+  // mirror that hangs uses up the index's turn, which is the right outcome.
+  const deadline = Date.now() + settings.perIndexTimeoutS * 1000;
+
   for (const origin of descriptor.origins) {
+    const remaining = deadline - Date.now();
+    if (remaining <= 0) {
+      problems.push(`${new URL(origin).host}: not tried, no time left`);
+      continue;
+    }
     const control = new AbortController();
-    const timer = setTimeout(() => control.abort(), settings.perIndexTimeoutS * 1000);
+    const timer = setTimeout(() => control.abort(), remaining);
     try {
       const { url, init } = buildRequest(descriptor, origin, query, settings);
       const response = await fetch(url, { ...init, signal: control.signal, redirect: "follow" });
