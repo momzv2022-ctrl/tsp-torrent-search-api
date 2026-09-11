@@ -854,11 +854,17 @@ function toCount(value) {
 const HASH = /\b([a-fA-F0-9]{40})\b/;
 const BASE32 = /\b([a-zA-Z2-7]{32})\b/;
 
-/** A 40-hex infohash out of a hash, a magnet, or a link that carries one. */
+/**
+ * A 40-hex infohash out of a hash, a magnet, or a link that carries one.
+ *
+ * Forty zeros is not one. It is what apibay puts in its "No results returned"
+ * placeholder, which is a row in every other respect, and which reached a
+ * client as a torrent named exactly that.
+ */
 function toInfohash(value) {
   const text = String(value);
   const hex = text.match(HASH);
-  if (hex) return hex[1].toLowerCase();
+  if (hex) return /^0{40}$/.test(hex[1]) ? undefined : hex[1].toLowerCase();
   const magnet = text.match(/urn:btih:([^&\s]+)/i);
   if (magnet) {
     const hexInMagnet = magnet[1].match(/^[a-fA-F0-9]{40}$/);

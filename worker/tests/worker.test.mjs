@@ -213,6 +213,15 @@ test("a field spec can fall back, extract, map and template", () => {
   assert.equal(pick(row, { from: "size", nonzero: true }, "json"), undefined);
 });
 
+test("an index's empty-result placeholder is not a result", () => {
+  // apibay answers a miss with one row: name "No results returned", hash of
+  // forty zeros. A client showed it as a torrent. Forty zeros is nobody's.
+  assert.equal(toInfohash("0000000000000000000000000000000000000000"), undefined);
+  assert.equal(toInfohash("magnet:?xt=urn:btih:0000000000000000000000000000000000000000"), undefined);
+  const descriptor = { id: "tpb", kind: "json", origins: ["https://x.example"], fields: { name: "name", infohash: "info_hash" } };
+  assert.equal(readRow(descriptor, { name: "No results returned", info_hash: "0".repeat(40) }, "https://x.example", 0), null);
+});
+
 test("a row without a name or a hash is not a result", () => {
   const descriptor = { id: "x", kind: "json", origins: ["https://s.example"], fields: { name: "n", infohash: "h" } };
   assert.equal(readRow(descriptor, { h: "a".repeat(40) }, "https://s.example", Date.now()), null);

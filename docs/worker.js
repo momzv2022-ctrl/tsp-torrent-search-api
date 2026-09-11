@@ -69,7 +69,7 @@ const BAKED_CATALOGUE = [{"id":"animetosho","upstream":"animetosho","name":"Anim
  * identical across three code fixes and answered the question wrongly. The
  * source's own hash moves when and only when the source does.
  */
-const BUILD = "82a0f9d95a55";
+const BUILD = "181cb1ac490e";
 
 /** Everything the Worker reads from the environment, resolved once per request. */
 function settings(env = {}) {
@@ -854,11 +854,17 @@ function toCount(value) {
 const HASH = /\b([a-fA-F0-9]{40})\b/;
 const BASE32 = /\b([a-zA-Z2-7]{32})\b/;
 
-/** A 40-hex infohash out of a hash, a magnet, or a link that carries one. */
+/**
+ * A 40-hex infohash out of a hash, a magnet, or a link that carries one.
+ *
+ * Forty zeros is not one. It is what apibay puts in its "No results returned"
+ * placeholder, which is a row in every other respect, and which reached a
+ * client as a torrent named exactly that.
+ */
 function toInfohash(value) {
   const text = String(value);
   const hex = text.match(HASH);
-  if (hex) return hex[1].toLowerCase();
+  if (hex) return /^0{40}$/.test(hex[1]) ? undefined : hex[1].toLowerCase();
   const magnet = text.match(/urn:btih:([^&\s]+)/i);
   if (magnet) {
     const hexInMagnet = magnet[1].match(/^[a-fA-F0-9]{40}$/);
