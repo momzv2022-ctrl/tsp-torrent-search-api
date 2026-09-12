@@ -31,8 +31,9 @@
              font-size:14px; font-weight:600; letter-spacing:.01em; border-radius:0; border:1px solid #000; white-space:nowrap; }
   a.plugin:hover { background:#1a1a1a; }
   a.plugin svg { width:18px; height:18px; fill:none; stroke:#fff; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; flex:none; }
-  a.play { display:inline-flex; height:40px; }
-  a.play img { height:40px; width:auto; display:block; }
+  /* Google's badge carries its own transparent margin, so it is drawn taller to stand level with the button beside it. */
+  a.play { display:inline-flex; height:40px; align-items:center; }
+  a.play img { height:56px; width:auto; display:block; }
   .how { font-size:13px; color:var(--dim); text-align:center; margin:.6rem auto 0; max-width:36rem; }
   table { border-collapse:collapse; width:100%; font-size:13.5px; background:#fff; border:1px solid var(--line); border-radius:10px; overflow:hidden; }
   th, td { text-align:left; padding:.55rem .75rem; border-top:1px solid var(--line); }
