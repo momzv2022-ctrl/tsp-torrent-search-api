@@ -7,16 +7,17 @@
 <meta name="description" content="A live TSP search API over public torrent indexes: a URL, a key, and the clients that speak it.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='14' fill='%232563eb'/%3E%3Ccircle cx='16' cy='16' r='6' fill='%23fff'/%3E%3C/svg%3E">
 <style>
-  :root { --ink:#111; --dim:#5b6472; --line:#e5e8ee; --box:#f6f7f9; --blue:#2563eb; --blue-dark:#1d4ed8; --green:#16a34a; --green-dark:#15803d; }
+  :root { --ink:#111; --dim:#5b6472; --line:#e5e8ee; --box:#f6f7f9; --blue:#2563eb; }
   * { box-sizing:border-box; }
   html, body { margin:0; background:#fff; color:var(--ink); }
   body { font:15px/1.6 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; min-height:100vh; }
   canvas#wind { position:fixed; inset:0; width:100%; height:100%; z-index:0; pointer-events:none; }
   main { position:relative; z-index:1; max-width:44rem; margin:0 auto; padding:4.5rem 1.25rem 4rem; }
-  h1 { text-align:center; color:#000; font-size:2rem; line-height:1.15; letter-spacing:-.02em; margin:0 0 1rem; }
+  h1 { text-align:center; color:#000; text-transform:uppercase; font-size:1.9rem; line-height:1.15; letter-spacing:.04em; margin:0 0 1rem; }
   p.lede { text-align:center; font-size:14px; color:var(--dim); margin:0 auto 2.75rem; max-width:38rem; }
-  p.lede strong { color:var(--ink); font-weight:600; }
+  p.lede strong { color:var(--ink); font-weight:700; }
   h2 { font-size:.8rem; text-transform:uppercase; letter-spacing:.08em; color:var(--dim); font-weight:600; margin:2.5rem 0 .75rem; text-align:center; }
+  h4 { font-size:1.05rem; font-weight:700; color:var(--ink); text-align:center; margin:2.75rem 0 .9rem; }
   .field { display:flex; gap:.5rem; align-items:stretch; margin:.5rem 0; }
   .box { flex:1 1 auto; min-width:0; font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:13px; background:var(--box);
          border:1px solid var(--line); border-radius:8px; padding:.7rem .85rem; overflow-x:auto; white-space:nowrap; user-select:all; line-height:1.4; }
@@ -25,16 +26,14 @@
   button:hover { border-color:#c9cfd9; background:var(--box); }
   button:disabled { opacity:.5; cursor:default; }
   .note { text-align:center; font-size:13px; color:var(--dim); margin:.5rem 0 0; }
-  .clients { display:flex; gap:1rem; justify-content:center; flex-wrap:wrap; margin:1rem 0 .25rem; }
-  a.client { display:flex; align-items:center; gap:.85rem; text-decoration:none; color:#fff; padding:.95rem 1.4rem .95rem 1.15rem; border-radius:14px;
-             min-width:15rem; box-shadow:0 8px 24px -12px rgba(0,0,0,.45); transition:transform .15s ease, box-shadow .15s ease; }
-  a.client:hover { transform:translateY(-2px); box-shadow:0 14px 30px -12px rgba(0,0,0,.5); }
-  a.client.qb { background:linear-gradient(135deg,#3b82f6,var(--blue-dark)); }
-  a.client.oriole { background:linear-gradient(135deg,#22c55e,var(--green-dark)); }
-  a.client .mark { width:2.4rem; height:2.4rem; border-radius:10px; background:rgba(255,255,255,.18); display:grid; place-items:center; flex:none; }
-  a.client .mark svg { width:1.5rem; height:1.5rem; fill:#fff; }
-  a.client .name { font-weight:700; font-size:1.05rem; line-height:1.2; }
-  a.client .sub { font-size:.8rem; opacity:.85; }
+  .clients { display:flex; gap:.9rem; justify-content:center; align-items:center; flex-wrap:wrap; margin:.25rem 0 .5rem; }
+  a.plugin { display:inline-flex; align-items:center; gap:.6rem; height:40px; padding:0 1.1rem 0 .9rem; background:#000; color:#fff; text-decoration:none;
+             font-size:14px; font-weight:600; letter-spacing:.01em; border-radius:0; border:1px solid #000; white-space:nowrap; }
+  a.plugin:hover { background:#1a1a1a; }
+  a.plugin svg { width:18px; height:18px; fill:none; stroke:#fff; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; flex:none; }
+  a.play { display:inline-flex; height:40px; }
+  a.play img { height:40px; width:auto; display:block; }
+  .how { font-size:13px; color:var(--dim); text-align:center; margin:.6rem auto 0; max-width:36rem; }
   table { border-collapse:collapse; width:100%; font-size:13.5px; background:#fff; border:1px solid var(--line); border-radius:10px; overflow:hidden; }
   th, td { text-align:left; padding:.55rem .75rem; border-top:1px solid var(--line); }
   th { border-top:0; background:var(--box); color:var(--dim); font-weight:600; font-size:.75rem; text-transform:uppercase; letter-spacing:.06em; }
@@ -44,7 +43,7 @@
   .row { display:flex; justify-content:center; gap:.6rem; margin-top:.9rem; }
   footer { margin-top:3.5rem; text-align:center; font-size:13px; color:var(--dim); }
   footer a { color:inherit; }
-  @media (max-width:520px) { h1 { font-size:1.55rem; } .field { flex-wrap:wrap; } .field button { flex:1 1 auto; } }
+  @media (max-width:520px) { h1 { font-size:1.45rem; } .field { flex-wrap:wrap; } .field button { flex:1 1 auto; } }
   @media (prefers-reduced-motion: reduce) { canvas#wind { display:none; } }
 </style>
 </head>
@@ -55,7 +54,7 @@
   <p class="lede">
     TSP is a search API over public torrent indexes: one request, every site asked at once, one merged answer.
     This is a live instance you can point a client at.
-    <strong>Currently searching:</strong> <span id="sites">loading the list…</span>.
+    <strong>Currently searching: <span id="sites">loading the list…</span>.</strong>
     It hosts nothing, stores nothing and shows no results of its own. What you search for and what you download
     are yours to answer for, so check the law where you live before you use it.
   </p>
@@ -72,18 +71,20 @@
   </div>
   <p class="note">Keys are made on request and stored nowhere. Each one is good for 30 searches a minute.</p>
 
-  <h2>Supported free clients</h2>
+  <h4>Supported free clients</h4>
   <div class="clients">
-    <a class="client qb" href="https://www.qbittorrent.org/download" rel="noopener">
-      <span class="mark"><svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm0 4a6 6 0 0 1 4.9 9.46l2.1 2.1-1.44 1.44-2.1-2.1A6 6 0 1 1 12 6zm0 2a4 4 0 1 0 0 8 4 4 0 0 0 0-8z"/></svg></span>
-      <span><span class="name">qBittorrent</span><br><span class="sub">Windows, macOS, Linux · search plugin</span></span>
+    <a class="plugin" id="plugin" href="/tsp.py" download="tsp.py">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M4 19h16"/></svg>
+      qBittorrent search plugin
     </a>
-    <a class="client oriole" href="https://play.google.com/store/apps/details?id=io.github.raul2hot.oriole" rel="noopener">
-      <span class="mark"><svg viewBox="0 0 24 24"><path d="M4 3.5v17l13-8.5L4 3.5zm2 3.7L13.4 12 6 16.8V7.2zM16.5 9.1 19 10.7c.9.6.9 2 0 2.6l-2.5 1.6L14.2 12l2.3-2.9z"/></svg></span>
-      <span><span class="name">Oriole</span><br><span class="sub">Android · Google Play</span></span>
+    <a class="play" href="https://play.google.com/store/apps/details?id=io.github.raul2hot.oriole" rel="noopener">
+      <img alt="Get it on Google Play" src="https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png">
     </a>
   </div>
-  <p class="note">Give either one the URL and the key above.</p>
+  <p class="how">
+    The plugin comes with this page's URL and your key inside. In qBittorrent: View, Search engine, Search plugins,
+    Install a new one, Local file. In Oriole, paste the URL and the key into its settings.
+  </p>
 
   <h2>Benchmarks</h2>
   <div class="wrap">
@@ -92,7 +93,7 @@
       <tbody id="bench"><tr><td class="dim" colspan="5">Waiting for a key…</td></tr></tbody>
     </table>
   </div>
-  <p class="note" id="benchnote">Measured from your browser, against this instance, just now.</p>
+  <p class="note">Measured from your browser, against this instance, just now.</p>
   <div class="row"><button type="button" id="rerun" disabled>Run again</button></div>
 
   <footer>
@@ -165,6 +166,21 @@ async function bench() {
   el("rerun").disabled = false;
 }
 
+// The plugin file, with this page's URL and the visitor's key written in.
+async function plugin(event) {
+  event.preventDefault();
+  if (!key && !(await mint())) return;
+  const template = await (await fetch("/tsp.py")).text();
+  const blob = new Blob([template.replace("__TSP_URL__", API).replace("__TSP_KEY__", key)], { type: "text/x-python" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "tsp.py";
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 10_000);
+}
+
 for (const button of document.querySelectorAll("[data-copy]")) {
   button.onclick = async () => {
     const text = el(button.dataset.copy).textContent;
@@ -183,6 +199,7 @@ for (const button of document.querySelectorAll("[data-copy]")) {
 }
 el("newkey").onclick = async () => { if (await mint()) bench(); };
 el("rerun").onclick = bench;
+el("plugin").onclick = plugin;
 
 (async () => {
   if (await mint()) {
@@ -193,61 +210,82 @@ el("rerun").onclick = bench;
 
 // --- the wind ---------------------------------------------------------------------
 //
-// Particles carried by a divergence-free flow: the velocity is the curl of a
-// stream function made of a few travelling sine waves, so the field twirls and
-// never piles up. Gusts start at the top corners, one side or the other at
-// random, and the flow does the rest.
+// A lattice of 2px dots, one at every crossing of a 50px grid, each pushed
+// off its crossing by the wind where it stands and pulled back when the wind
+// drops. The wind is a vector field: a slow Perlin-noise flow everywhere, plus
+// gusts that enter at random points along the top and blow down the page.
+// A gust passing through shows as a ripple crossing the grid.
 
 (() => {
   const canvas = el("wind");
   if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
   const ctx = canvas.getContext("2d");
-  const COLORS = ["#c7ccd4", "#d5d9e0", "#93b4f5", "#bfd3fb", "#6d9cf1"];
-  const MAX = 320;
-  let W = 0, H = 0, dpr = 1;
-  const particles = [];
+  const CELL = 50;
+  const REST = [207, 212, 220];
+  const GUST = [91, 141, 239];
+  let W = 0, H = 0, dpr = 1, dots = [];
+  const gusts = [];
   let last = performance.now();
   let nextGust = 0;
   let running = true;
+
+  // Classic Perlin noise in three dimensions, the third being time.
+  const PERM = new Uint8Array(512);
+  {
+    const p = Array.from({ length: 256 }, (_, i) => i);
+    for (let i = 255; i > 0; i -= 1) {
+      const j = (Math.random() * (i + 1)) | 0;
+      [p[i], p[j]] = [p[j], p[i]];
+    }
+    for (let i = 0; i < 512; i += 1) PERM[i] = p[i & 255];
+  }
+  const fade = (t) => t * t * t * (t * (t * 6 - 15) + 10);
+  const lerp = (a, b, t) => a + (b - a) * t;
+  const grad = (h, x, y, z) => {
+    const g = h & 15;
+    const u = g < 8 ? x : y;
+    const v = g < 4 ? y : g === 12 || g === 14 ? x : z;
+    return ((g & 1) ? -u : u) + ((g & 2) ? -v : v);
+  };
+  function noise(x, y, z) {
+    const X = Math.floor(x) & 255, Y = Math.floor(y) & 255, Z = Math.floor(z) & 255;
+    x -= Math.floor(x); y -= Math.floor(y); z -= Math.floor(z);
+    const u = fade(x), v = fade(y), w = fade(z);
+    const A = PERM[X] + Y, AA = PERM[A] + Z, AB = PERM[A + 1] + Z;
+    const B = PERM[X + 1] + Y, BA = PERM[B] + Z, BB = PERM[B + 1] + Z;
+    return lerp(
+      lerp(lerp(grad(PERM[AA], x, y, z), grad(PERM[BA], x - 1, y, z), u), lerp(grad(PERM[AB], x, y - 1, z), grad(PERM[BB], x - 1, y - 1, z), u), v),
+      lerp(lerp(grad(PERM[AA + 1], x, y, z - 1), grad(PERM[BA + 1], x - 1, y, z - 1), u), lerp(grad(PERM[AB + 1], x, y - 1, z - 1), grad(PERM[BB + 1], x - 1, y - 1, z - 1), u), v),
+      w,
+    );
+  }
 
   function size() {
     dpr = Math.min(devicePixelRatio || 1, 2);
     W = innerWidth; H = innerHeight;
     canvas.width = W * dpr; canvas.height = H * dpr;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    dots = [];
+    for (let y = 0; y <= H + CELL; y += CELL) {
+      for (let x = 0; x <= W + CELL; x += CELL) dots.push({ x, y, dx: 0, dy: 0, s: 0 });
+    }
   }
   addEventListener("resize", size);
   size();
 
-  const WAVES = [
-    { a: 26, kx: 0.0042, ky: 0.0031, w: 0.35, p: 0.4 },
-    { a: 18, kx: -0.0027, ky: 0.0058, w: -0.22, p: 2.1 },
-    { a: 12, kx: 0.0068, ky: -0.0044, w: 0.48, p: 4.7 },
-  ];
-  const psi = (x, y, t) => WAVES.reduce((sum, v) => sum + v.a * Math.sin(v.kx * x + v.ky * y + v.w * t + v.p), 0);
-  function flow(x, y, t) {
-    const h = 2;
-    return {
-      x: (psi(x, y + h, t) - psi(x, y - h, t)) / (2 * h) * 12,
-      y: -(psi(x + h, y, t) - psi(x - h, y, t)) / (2 * h) * 12 + 9,
-    };
-  }
-
-  function spawn(fromLeft, n) {
-    for (let i = 0; i < n && particles.length < MAX; i += 1) {
-      const side = fromLeft ? 1 : -1;
-      particles.push({
-        x: fromLeft ? -10 + Math.random() * W * 0.12 : W + 10 - Math.random() * W * 0.12,
-        y: -10 + Math.random() * H * 0.18,
-        vx: side * (40 + Math.random() * 60),
-        vy: 20 + Math.random() * 40,
-        r: 1 + Math.random() * 2.2,
-        life: 0,
-        span: 9 + Math.random() * 9,
-        color: COLORS[(Math.random() * COLORS.length) | 0],
-        spin: (Math.random() - 0.5) * 2,
-      });
+  // The wind at a point: the noise flow, and every gust's push.
+  function wind(x, y, t) {
+    const angle = noise(x * 0.0022, y * 0.0022, t * 0.12) * Math.PI * 2;
+    const calm = 0.25 + 0.25 * (noise(x * 0.0015 + 40, y * 0.0015, t * 0.08) + 1);
+    let vx = Math.cos(angle) * calm;
+    let vy = Math.sin(angle) * calm;
+    for (const g of gusts) {
+      const ox = x - g.x, oy = y - g.y;
+      const push = g.s * Math.exp(-(ox * ox + oy * oy) / (2 * g.r * g.r));
+      vx += (ox / g.r) * 0.6 * push;
+      vy += push;
     }
+    return { vx, vy };
   }
 
   function step(now) {
@@ -257,32 +295,29 @@ el("rerun").onclick = bench;
     const t = now / 1000;
 
     if (now > nextGust) {
-      spawn(Math.random() < 0.5, 14 + (Math.random() * 18) | 0);
-      nextGust = now + 900 + Math.random() * 2200;
+      gusts.push({ x: Math.random() * W, y: -120, r: 110 + Math.random() * 160, s: 1.4 + Math.random() * 1.6, v: 120 + Math.random() * 120 });
+      nextGust = now + 700 + Math.random() * 2000;
     }
-    if (Math.random() < 0.6) spawn(Math.random() < 0.5, 1);
+    for (let i = gusts.length - 1; i >= 0; i -= 1) {
+      gusts[i].y += gusts[i].v * dt;
+      gusts[i].x += Math.sin(t + gusts[i].r) * 20 * dt;
+      if (gusts[i].y > H + gusts[i].r * 2) gusts.splice(i, 1);
+    }
 
     ctx.clearRect(0, 0, W, H);
-    for (let i = particles.length - 1; i >= 0; i -= 1) {
-      const p = particles[i];
-      const f = flow(p.x, p.y, t + p.spin);
-      p.vx += (f.x - p.vx) * 1.6 * dt;
-      p.vy += (f.y - p.vy) * 1.6 * dt;
-      p.x += p.vx * dt;
-      p.y += p.vy * dt;
-      p.life += dt;
-      const fade = Math.min(p.life / 1.2, 1) * Math.max(0, 1 - (p.life - p.span + 2) / 2);
-      if (p.life > p.span || p.y > H + 20 || p.x < -40 || p.x > W + 40) {
-        particles.splice(i, 1);
-        continue;
-      }
-      ctx.globalAlpha = 0.85 * fade;
-      ctx.fillStyle = p.color;
-      ctx.beginPath();
-      ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
-      ctx.fill();
+    for (const d of dots) {
+      const w = wind(d.x, d.y, t);
+      const tx = w.vx * 14, ty = w.vy * 14;
+      d.dx += (tx - d.dx) * Math.min(1, 5 * dt);
+      d.dy += (ty - d.dy) * Math.min(1, 5 * dt);
+      const strength = Math.min(1, Math.hypot(w.vx, w.vy) / 2.2);
+      d.s += (strength - d.s) * Math.min(1, 4 * dt);
+      const r = REST[0] + (GUST[0] - REST[0]) * d.s;
+      const g = REST[1] + (GUST[1] - REST[1]) * d.s;
+      const b = REST[2] + (GUST[2] - REST[2]) * d.s;
+      ctx.fillStyle = `rgb(${r | 0},${g | 0},${b | 0})`;
+      ctx.fillRect(d.x + d.dx - 1, d.y + d.dy - 1, 2, 2);
     }
-    ctx.globalAlpha = 1;
     requestAnimationFrame(step);
   }
 
