@@ -33,6 +33,17 @@
   a.client svg { width:18px; height:18px; flex:none; }
   a.client svg.arrow { fill:none; stroke:#fff; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
   .how { font-size:13px; color:var(--dim); text-align:center; margin:.6rem auto 0; max-width:36rem; }
+  .term { background:#0b1020; color:#d7dce6; border-radius:10px; border:1px solid #1f2937; box-shadow:0 10px 30px -18px rgba(0,0,0,.6); overflow:hidden; }
+  .term .bar { display:flex; align-items:center; gap:.4rem; padding:.55rem .8rem; background:#111827; border-bottom:1px solid #1f2937; }
+  .term .bar i { width:11px; height:11px; border-radius:50%; display:inline-block; }
+  .term .bar i:nth-child(1) { background:#ef4444; } .term .bar i:nth-child(2) { background:#f59e0b; } .term .bar i:nth-child(3) { background:#22c55e; }
+  .term .bar span { margin-left:auto; font-size:12px; color:#6b7280; }
+  .term .bar button { font-size:12px; padding:.2rem .6rem; border-radius:6px; background:#1f2937; color:#e5e7eb; border:1px solid #374151; }
+  .term .bar button:hover { background:#374151; }
+  .term pre { margin:0; padding:.9rem 1rem 1rem; font:13px/1.55 ui-monospace,SFMono-Regular,Menlo,monospace; overflow-x:auto; white-space:pre; }
+  .term .p { color:#22c55e; user-select:none; }
+  .term .c { color:#6b7280; }
+  .term .k { color:#93c5fd; }
   table { border-collapse:collapse; width:100%; font-size:13.5px; background:#fff; border:1px solid var(--line); border-radius:10px; overflow:hidden; }
   th, td { text-align:left; padding:.55rem .75rem; border-top:1px solid var(--line); }
   th { border-top:0; background:var(--box); color:var(--dim); font-weight:600; font-size:.75rem; text-transform:uppercase; letter-spacing:.06em; }
@@ -91,6 +102,16 @@
     Install a new one, Local file. In Oriole, paste the URL and the key into its settings.
   </p>
 
+  <h2>From a terminal</h2>
+  <div class="term">
+    <div class="bar"><i></i><i></i><i></i><span>bash</span><button type="button" id="copycurl">Copy</button></div>
+<pre id="curl"><span class="p">$</span> curl -s <span class="k">"https://api.tspsearch.dev/api/v1/search?q=ubuntu&amp;limit=3"</span> \
+    -H <span class="k">"X-Api-Key: <span id="curlkey">YOUR-KEY</span>"</span>
+<span class="c"># {"query":"ubuntu","count":265,"took_ms":790,"torrents":[{"name":…,"magnet":…,"seeders":…}],"engines":[…]}</span>
+<span class="p">$</span> curl -s <span class="k">"https://api.tspsearch.dev/api/v1/indexers?apikey=<span class="curlkey2">YOUR-KEY</span>"</span>   <span class="c"># what it searches</span></pre>
+  </div>
+  <p class="note">The key goes in <code>?apikey=</code>, <code>X-Api-Key:</code> or <code>Authorization: Bearer</code>. Same JSON shape as TSP everywhere.</p>
+
   <h2>Benchmarks</h2>
   <div class="wrap">
     <table>
@@ -125,6 +146,8 @@ async function mint() {
     if (!response.ok || !got.apikey) throw new Error(got.error || `the API answered ${response.status}`);
     key = got.apikey;
     el("key").textContent = key;
+    el("curlkey").textContent = key;
+    for (const one of document.querySelectorAll(".curlkey2")) one.textContent = key;
     el("key").classList.remove("wait");
     el("copykey").disabled = false;
   } catch (error) {
@@ -203,6 +226,17 @@ for (const button of document.querySelectorAll("[data-copy]")) {
   };
 }
 el("newkey").onclick = async () => { if (await mint()) bench(); };
+el("copycurl").onclick = async () => {
+  const command = `curl -s "https://api.tspsearch.dev/api/v1/search?q=ubuntu&limit=3" -H "X-Api-Key: ${key || "YOUR-KEY"}"`;
+  const button = el("copycurl");
+  try {
+    await navigator.clipboard.writeText(command);
+    button.textContent = "Copied";
+    setTimeout(() => { button.textContent = "Copy"; }, 1200);
+  } catch {
+    button.textContent = "Select and copy";
+  }
+};
 el("rerun").onclick = bench;
 el("plugin").onclick = plugin;
 
