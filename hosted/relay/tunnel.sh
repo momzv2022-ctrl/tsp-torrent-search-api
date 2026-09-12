@@ -6,9 +6,9 @@
 #
 #     sh hosted/relay/tunnel.sh
 #
-# Change HOSTNAME if the front's TSP_RELAY_URL is something else.
+# Set RELAY_HOST if the front's TSP_RELAY_URL is something else.
 set -eu
-HOSTNAME=${HOSTNAME_OVERRIDE:-relay.tspsearch.dev}
+RELAY_HOST=${RELAY_HOST:-relay.tspsearch.dev}
 NAME=tsp-relay
 
 if ! command -v cloudflared >/dev/null 2>&1; then
@@ -20,16 +20,16 @@ fi
 
 [ -f /root/.cloudflared/cert.pem ] || cloudflared tunnel login
 
-cloudflared tunnel list 2>/dev/null | grep -q " $NAME " || cloudflared tunnel create "$NAME"
+cloudflared tunnel list --name "$NAME" --output json 2>/dev/null | grep -q '"id"' || cloudflared tunnel create "$NAME"
 UUID=$(cloudflared tunnel list --name "$NAME" --output json | python3 -c 'import json,sys;print(json.load(sys.stdin)[0]["id"])')
-cloudflared tunnel route dns --overwrite-dns "$NAME" "$HOSTNAME"
+cloudflared tunnel route dns --overwrite-dns "$NAME" "$RELAY_HOST"
 
 mkdir -p /etc/cloudflared
 cat > /etc/cloudflared/config.yml <<CONF
 tunnel: $UUID
 credentials-file: /root/.cloudflared/$UUID.json
 ingress:
-  - hostname: $HOSTNAME
+  - hostname: $RELAY_HOST
     service: http://127.0.0.1:8787
   - service: http_status:404
 CONF
@@ -40,4 +40,4 @@ else
   cloudflared service install
 fi
 sleep 5
-curl -sf "https://$HOSTNAME/api/v1/health" >/dev/null && echo "https://$HOSTNAME answers" || echo "not answering yet; give DNS a minute, then: curl https://$HOSTNAME/api/v1/health"
+curl -sf "https://$RELAY_HOST/api/v1/health" >/dev/null && echo "https://$RELAY_HOST answers" || echo "not answering yet; give DNS a minute, then: curl https://$RELAY_HOST/api/v1/health"
