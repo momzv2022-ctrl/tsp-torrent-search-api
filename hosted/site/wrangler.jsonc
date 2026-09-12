@@ -1,0 +1,14 @@
+// The page at tspsearch.dev: static files, served by Cloudflare as a Worker
+// with assets and no code. Deploy with
+//
+//     npx wrangler deploy -c hosted/site/wrangler.jsonc
+//
+// The page talks to api.tspsearch.dev from the browser; nothing here holds a
+// key or a secret.
+{
+  "name": "tsp-site",
+  "compatibility_date": "2026-09-01",
+  "assets": { "directory": "./public", "not_found_handling": "none" },
+  "workers_dev": false,
+  "routes": [{ "pattern": "tspsearch.dev", "custom_domain": true }]
+}

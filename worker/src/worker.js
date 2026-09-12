@@ -1460,7 +1460,12 @@ async function cachedSearch(query, catalogue, settings, nowMs, waitUntil) {
 const json = (status, body) =>
   new Response(`${JSON.stringify(body, null, 2)}\n`, {
     status,
-    headers: { "content-type": "application/json; charset=utf-8", "access-control-allow-origin": "*", "cache-control": "no-store" },
+    headers: {
+      "content-type": "application/json; charset=utf-8",
+      "access-control-allow-origin": "*",
+      "access-control-expose-headers": "x-tsp-cache, retry-after",
+      "cache-control": "no-store",
+    },
   });
 
 const tooMany = () => {

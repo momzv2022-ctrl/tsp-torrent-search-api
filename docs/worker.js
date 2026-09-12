@@ -69,7 +69,7 @@ const BAKED_CATALOGUE = [{"id":"animetosho","upstream":"animetosho","name":"Anim
  * identical across three code fixes and answered the question wrongly. The
  * source's own hash moves when and only when the source does.
  */
-const BUILD = "5485c09560ff";
+const BUILD = "e401dafe4dd4";
 
 /** Everything the Worker reads from the environment, resolved once per request. */
 function settings(env = {}) {
@@ -1460,7 +1460,12 @@ async function cachedSearch(query, catalogue, settings, nowMs, waitUntil) {
 const json = (status, body) =>
   new Response(`${JSON.stringify(body, null, 2)}\n`, {
     status,
-    headers: { "content-type": "application/json; charset=utf-8", "access-control-allow-origin": "*", "cache-control": "no-store" },
+    headers: {
+      "content-type": "application/json; charset=utf-8",
+      "access-control-allow-origin": "*",
+      "access-control-expose-headers": "x-tsp-cache, retry-after",
+      "cache-control": "no-store",
+    },
   });
 
 const tooMany = () => {
