@@ -386,7 +386,7 @@ el("plugin").onclick = plugin;
         const red = (REST[0] + (GUST[0] - REST[0]) * s) | 0;
         const green = (REST[1] + (GUST[1] - REST[1]) * s) | 0;
         const blue = (REST[2] + (GUST[2] - REST[2]) * s) | 0;
-        const color = 0x80000000 | (blue << 16) | (green << 8) | red; // half opacity
+        const color = 0x1a000000 | (blue << 16) | (green << 8) | red; // 10% opacity
         const px = Math.round((x + dx[n]) * dpr) - side / 2, py = Math.round((y + dy[n]) * dpr) - side / 2;
         for (let yy = 0; yy < side; yy += 1) {
           const row = py + yy;
