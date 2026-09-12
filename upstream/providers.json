@@ -3,11 +3,11 @@
   "upstream": {
     "repo": "prajwalch/TorrentSearch",
     "url": "https://github.com/prajwalch/TorrentSearch",
-    "commit": "60a70d79cb803e88f088cd7e6645711c613e2538",
-    "committed_at": "2026-09-08T11:43:12Z",
+    "commit": "2d718a34a7e1bb99c711846f151e50b59b5364be",
+    "committed_at": "2026-09-12T07:49:34Z",
     "dir": "app/src/main/kotlin/com/prajwalch/torrentsearch/providers"
   },
-  "synced_at": "2026-09-09T11:28:47Z",
+  "synced_at": "2026-09-12T07:55:07Z",
   "count": 43,
   "providers": [
     {
@@ -446,7 +446,8 @@
       "unsafe": false,
       "unsafe_reason": null,
       "capabilities": [
-        "TorrentDetailsProvider"
+        "TorrentDetailsProvider",
+        "MagnetUriProvider"
       ],
       "shape": "html",
       "source_file": "app/src/main/kotlin/com/prajwalch/torrentsearch/providers/MegaPeer.kt"
