@@ -127,8 +127,11 @@
     <tr><td><code>TSP_TIMEOUT</code></td><td class="k">seconds to wait on one index (default 8)</td></tr>
     <tr><td><code>TSP_FEED_URL</code></td><td class="k">a catalogue of your own</td></tr>
     <tr><td><code>TSP_FEED</code></td><td class="k"><code>0</code> to pin the compiled catalogue and never refetch</td></tr>
+    <tr><td><code>TSP_ALSO</code></td><td class="k">search these too, by id, even where the catalogue has them off; unlike <code>TSP_INDEXES</code> it does not freeze the list</td></tr>
+    <tr><td><code>TSP_CACHE</code></td><td class="k">seconds a merged answer is kept and paged from (default 600); <code>0</code> for none. Only a custom domain has a working cache; on workers.dev every search is fresh</td></tr>
   </tbody></table>
-  <p class="hint">Set them under Settings → Variables and Secrets. Each one takes effect on the next request, and they survive a rebuild.</p>
+  <p class="hint">Set them under Settings → Variables and Secrets. Each one takes effect on the next request, and they survive a rebuild.
+  The same file also runs as a service for strangers, with keys it signs and hands out itself; the README's "Hosting it for others" says how.</p>
 </details>
 
 <h2>What it searches</h2>

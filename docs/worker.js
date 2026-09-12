@@ -69,7 +69,7 @@ const BAKED_CATALOGUE = [{"id":"animetosho","upstream":"animetosho","name":"Anim
  * identical across three code fixes and answered the question wrongly. The
  * source's own hash moves when and only when the source does.
  */
-const BUILD = "df163c19e737";
+const BUILD = "5485c09560ff";
 
 /** Everything the Worker reads from the environment, resolved once per request. */
 function settings(env = {}) {
@@ -82,16 +82,33 @@ function settings(env = {}) {
     return Number.isFinite(value) && value > 0 ? value : fallback;
   };
   const off = (name) => ["0", "false", "no", "off"].includes(text(name).toLowerCase());
+  const on = (name) => ["1", "true", "yes", "on"].includes(text(name).toLowerCase());
+  const list = (name) => text(name).split(/[\s,]+/).filter(Boolean);
+  // A rate limiter is a binding, not a string: an object with `limit()`,
+  // declared in wrangler config. A pasted Worker has none, and is not limited.
+  const limiter = (name) => (env[name] && typeof env[name].limit === "function" ? env[name] : null);
 
-  const only = text("TSP_INDEXES")
-    .split(/[\s,]+/)
-    .filter(Boolean);
+  const only = list("TSP_INDEXES");
+  const relayIndexes = text("TSP_RELAY_INDEXES");
 
   return {
     apikey: text("TSP_APIKEY", BAKED_APIKEY),
     showKey: !off("TSP_SHOW_KEY"),
     feedUrl: off("TSP_FEED") ? null : text("TSP_FEED_URL", DEFAULT_FEED_URL),
     only: only.length ? new Set(only) : null,
+    also: new Set(list("TSP_ALSO")),
+    // Hosted mode, section 1b: keys signed with a secret and stored nowhere,
+    // an operator's key above them, limits and a cache in front, and a relay
+    // behind for the indexes this address cannot reach.
+    keySecret: text("TSP_KEY_SECRET"),
+    keyDeny: new Set(list("TSP_KEY_DENY")),
+    adminKey: text("TSP_ADMIN_KEY"),
+    limiters: { search: limiter("TSP_RATE_SEARCH"), keys: limiter("TSP_RATE_KEYS") },
+    cacheS: off("TSP_CACHE") ? 0 : number("TSP_CACHE", 600),
+    relayUrl: text("TSP_RELAY_URL"),
+    relayKey: text("TSP_RELAY_KEY"),
+    relayIndexes: relayIndexes === "*" ? "*" : new Set(list("TSP_RELAY_INDEXES")),
+    relayOnly: on("TSP_RELAY_ONLY"),
     nsfw: !off("TSP_NSFW"),
     browse: !off("TSP_BROWSE"),
     limit: number("TSP_LIMIT", 100),
@@ -125,6 +142,68 @@ function requestKey(url, request) {
   const auth = request.headers.get("authorization") || "";
   const bearer = auth.match(/^Bearer\s+(.+)$/i);
   return bearer ? bearer[1] : "";
+}
+
+// --- 1b. hosted mode: signed keys, the operator's key, limits ----------------
+//
+// A deployment for one person has one key, baked in or set. A deployment for
+// strangers cannot: that is the same key for everyone, or a list of them. So
+// with `TSP_KEY_SECRET` set, a key is `<id>.<signature>`, the signature an
+// HMAC of the id under the secret, minted by `/api/v1/key` for whoever asks
+// and checked by computing it again. Nothing is stored, nothing can leak but
+// the secret, one key is refused by listing its id in `TSP_KEY_DENY`, and all
+// of them by changing the secret.
+
+const KEY_ID_HEX = 24;
+const KEY_SIG_HEX = 32;
+const hex = (bytes) => [...bytes].map((byte) => byte.toString(16).padStart(2, "0")).join("");
+
+async function hmacHex(secret, text) {
+  const encoder = new TextEncoder();
+  const key = await crypto.subtle.importKey("raw", encoder.encode(secret), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+  return hex(new Uint8Array(await crypto.subtle.sign("HMAC", key, encoder.encode(text))));
+}
+
+const signKeyId = async (secret, id) => (await hmacHex(secret, id)).slice(0, KEY_SIG_HEX);
+
+/** A fresh signed key: a random id, its signature under the secret, kept by nobody. */
+async function mintKey(secret) {
+  const id = hex(crypto.getRandomValues(new Uint8Array(KEY_ID_HEX / 2)));
+  return `${id}.${await signKeyId(secret, id)}`;
+}
+
+/** The id of a signed key that is the secret's own and not denied, else null. */
+async function signedKeyId(given, settings) {
+  const match = typeof given === "string" ? given.match(/^([0-9a-f]{24})\.([0-9a-f]{32})$/) : null;
+  if (!match) return null;
+  if (!keyMatches(match[2], await signKeyId(settings.keySecret, match[1]))) return null;
+  return settings.keyDeny.has(match[1]) ? null : match[1];
+}
+
+/**
+ * Who is asking. `ok` says whether they may; `id` is what a rate limiter
+ * counts them as; `admin` is the operator, whose key is not limited and is
+ * the only one a hosted deployment lets run a descriptor of its choosing.
+ */
+async function authorize(given, settings) {
+  if (settings.adminKey && keyMatches(given, settings.adminKey)) return { ok: true, id: "admin", admin: true };
+  if (settings.keySecret) {
+    const id = await signedKeyId(given, settings);
+    return id ? { ok: true, id, admin: false } : { ok: false };
+  }
+  if (!keyMatches(given, settings.apikey)) return { ok: false };
+  return { ok: true, id: settings.apikey ? "key" : "open", admin: false };
+}
+
+/** `true` when a rate-limit binding says no. No binding, or nothing to count by, is no limit. */
+async function limited(binding, key) {
+  if (!binding || !key) return false;
+  try {
+    const { success } = await binding.limit({ key });
+    return success === false;
+  } catch {
+    return false; // a limiter that fails does not take the search down with it
+  }
 }
 
 // --- 2. the feed -------------------------------------------------------------
@@ -233,8 +312,10 @@ async function loadFeed(settings, nowMs, waitUntil) {
 function chosen(catalogue, settings) {
   return catalogue.filter((index) => {
     if (settings.only) return settings.only.has(index.id);
-    if (index.enabled === false) return false;
     if (index.nsfw && !settings.nsfw) return false;
+    // `TSP_ALSO` turns one on that the catalogue has off, without `TSP_INDEXES`'s
+    // price of freezing the list: what the feed adds later still arrives.
+    if (index.enabled === false) return Boolean(settings.also?.has(index.id));
     return true;
   });
 }
@@ -1232,46 +1313,146 @@ function toTorrent(row, scrapedAt) {
   return torrent;
 }
 
-/** Ask every chosen index at once, and answer with TSP's search result object. */
-async function search(query, catalogue, settings, nowMs) {
-  const started = Date.now();
+/**
+ * Ask another deployment of this file to run an index.
+ *
+ * Whether a site answers is a fact about the address asking, and a few sites
+ * that answer an ordinary server refuse Cloudflare's addresses. So a hosted
+ * deployment can name a relay, `TSP_RELAY_URL`: another copy of this Worker
+ * standing somewhere else, and `TSP_RELAY_INDEXES` to send it. The relay runs
+ * the descriptor through `/api/v1/relay` and hands back the answer `askIndex`
+ * would have given, rows and all; the merge cannot tell the difference.
+ */
+const viaRelay = (index, settings) => Boolean(settings.relayUrl) && (settings.relayIndexes === "*" || settings.relayIndexes.has(index.id));
+
+async function askRelay(descriptor, query, settings) {
+  const problem = (text) => ({ id: descriptor.id, rows: [], origin: null, problems: [`relay: ${text}`] });
+  const url = new URL("/api/v1/relay", settings.relayUrl);
+  url.searchParams.set("d", JSON.stringify(descriptor));
+  url.searchParams.set("q", query);
+  const control = new AbortController();
+  const timer = setTimeout(() => control.abort(), (settings.perIndexTimeoutS + 2) * 1000);
+  try {
+    const response = await fetch(url, { headers: { "x-api-key": settings.relayKey, accept: "application/json" }, signal: control.signal });
+    if (!response.ok) return problem(`answered ${response.status}`);
+    const got = await response.json();
+    return {
+      id: descriptor.id,
+      rows: Array.isArray(got.rows) ? got.rows : [],
+      origin: got.origin ?? null,
+      problems: Array.isArray(got.problems) ? got.problems.map((text) => `relay: ${text}`) : [],
+    };
+  } catch (error) {
+    return problem(error.name === "AbortError" ? "timed out" : String(error.message || error).slice(0, 120));
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+/** Ask every chosen index at once. What comes back is what the cache keeps: merged rows, and who answered. */
+async function gather(query, catalogue, settings, nowMs) {
   const indexes = chosen(catalogue, settings).filter((index) => !query.indexers || query.indexers.has(index.id));
+  const scrapedAt = new Date(nowMs).toISOString();
 
   // Nothing was asked, so something has to be. `TSP_BROWSE=0` keeps the strict
   // reading instead: an empty query, an empty answer.
   const browsing = query.terms ? "" : settings.browse ? browseQuery(query.cat, nowMs) : "";
-  if (!query.terms && !browsing) {
-    return { query: query.q, count: 0, limit: query.limit, offset: query.offset, took_ms: Date.now() - started, torrents: [], engines: [] };
+  if (!query.terms && !browsing) return { rows: [], engines: [], failures: {}, browsing: "", scrapedAt };
+
+  const terms = browsing || query.terms;
+  const answers = await Promise.all(
+    indexes.map((index) => (viaRelay(index, settings) ? askRelay(index, terms, settings) : askIndex(index, terms, settings, nowMs))),
+  );
+
+  const failures = {};
+  for (const one of answers) {
+    if (!one.origin && one.problems.length) failures[one.id] = one.problems;
   }
+  return { rows: merge(answers), engines: answers.filter((one) => one.origin).map((one) => one.id), failures, browsing, scrapedAt };
+}
 
-  const answers = await Promise.all(indexes.map((index) => askIndex(index, browsing || query.terms, settings, nowMs)));
-
-  let rows = merge(answers);
+/** TSP's search result object, out of what was gathered, for the page that was asked for. */
+function answer(query, gathered, started) {
+  let rows = gathered.rows;
   if (query.cat) rows = rows.filter((row) => row.category === query.cat);
   if (query.minSeeders) rows = rows.filter((row) => (row.seeders ?? 0) >= query.minSeeders);
 
-  const scrapedAt = new Date(nowMs).toISOString();
   const body = {
     query: query.q,
     count: rows.length,
     limit: query.limit,
     offset: query.offset,
     took_ms: Date.now() - started,
-    torrents: rows.slice(query.offset, query.offset + query.limit).map((row) => toTorrent(row, scrapedAt)),
-    engines: answers.filter((answer) => answer.origin).map((answer) => answer.id),
+    torrents: rows.slice(query.offset, query.offset + query.limit).map((row) => toTorrent(row, gathered.scrapedAt)),
+    engines: gathered.engines,
   };
   // Not TSP. Without it, an empty search comes back full of rows with nothing
   // to say why, and "you asked for everything, so it picked something" is not
   // guessable from the rows.
-  if (browsing) body.browse_query = browsing;
-
-  const failures = {};
-  for (const answer of answers) {
-    if (!answer.origin && answer.problems.length) failures[answer.id] = answer.problems;
-  }
-  if (Object.keys(failures).length) body.failures = failures;
-
+  if (gathered.browsing) body.browse_query = gathered.browsing;
+  if (Object.keys(gathered.failures || {}).length) body.failures = gathered.failures;
   return body;
+}
+
+/** A search, fresh. */
+async function search(query, catalogue, settings, nowMs) {
+  const started = Date.now();
+  return answer(query, await gather(query, catalogue, settings, nowMs), started);
+}
+
+/**
+ * A search, remembered.
+ *
+ * The same question arrives many times an hour, and each arrival was asking a
+ * dozen sites again. So a merged answer is kept for `TSP_CACHE` seconds, keyed
+ * on everything that could change it, and paged from the copy: the second page
+ * of a query costs nothing, and a popular query is answered in the time it
+ * takes to read it back. Cloudflare's cache is per data centre, and only real
+ * on a custom domain: on a workers.dev address these calls do nothing,
+ * quietly, and every search is fresh. An answer nobody gave, every index
+ * silent, is not kept; the next asker deserves a retry.
+ */
+function cacheKey(query, settings) {
+  const asked = {
+    q: query.terms,
+    cat: query.cat,
+    indexers: query.indexers ? [...query.indexers].sort() : null,
+    only: settings.only ? [...settings.only].sort() : null,
+    also: [...(settings.also || [])].sort(),
+    nsfw: settings.nsfw,
+    browse: settings.browse,
+    limit: settings.limit,
+  };
+  return `https://cache.tsp.invalid/v1/search?${new URLSearchParams({ asked: JSON.stringify(asked) })}`;
+}
+
+async function cachedSearch(query, catalogue, settings, nowMs, waitUntil) {
+  const started = Date.now();
+  const cache = settings.cacheS > 0 ? globalThis.caches?.default : null;
+  const key = cache ? cacheKey(query, settings) : null;
+
+  if (cache) {
+    try {
+      const held = await cache.match(key);
+      if (held) return { body: answer(query, await held.json(), started), hit: true };
+    } catch {
+      // a cache that cannot be read is no cache
+    }
+  }
+
+  const gathered = await gather(query, catalogue, settings, nowMs);
+  if (cache && gathered.engines.length) {
+    try {
+      const keep = cache
+        .put(key, new Response(JSON.stringify(gathered), { headers: { "content-type": "application/json", "cache-control": `public, max-age=${settings.cacheS}` } }))
+        .catch(() => {});
+      if (waitUntil) waitUntil(keep);
+      else await keep;
+    } catch {
+      // nor is one that cannot be written
+    }
+  }
+  return { body: answer(query, gathered, started), hit: false };
 }
 
 // --- 6. routes ---------------------------------------------------------------
@@ -1281,6 +1462,12 @@ const json = (status, body) =>
     status,
     headers: { "content-type": "application/json; charset=utf-8", "access-control-allow-origin": "*", "cache-control": "no-store" },
   });
+
+const tooMany = () => {
+  const response = json(429, { error: "too many requests; try again in a moment" });
+  response.headers.set("retry-after", "10");
+  return response;
+};
 
 const whole = (value, fallback, cap) => {
   const number = Number.parseInt(value ?? "", 10);
@@ -1320,8 +1507,9 @@ function readQuery(url, settings) {
  */
 function setupPage(url, settings, catalogue, meta, known) {
   const base = `${url.protocol}//${url.host}`;
-  const shown = Boolean(settings.apikey) && (known || settings.showKey);
-  const example = `${base}/api/v1/search?q=ubuntu${shown ? `&apikey=${encodeURIComponent(settings.apikey)}` : settings.apikey ? "&apikey=YOUR-KEY" : ""}`;
+  const hosted = Boolean(settings.keySecret);
+  const shown = !hosted && Boolean(settings.apikey) && (known || settings.showKey);
+  const example = `${base}/api/v1/search?q=ubuntu${shown ? `&apikey=${encodeURIComponent(settings.apikey)}` : hosted || settings.apikey ? "&apikey=YOUR-KEY" : ""}`;
   const enabled = chosen(catalogue, settings);
   const escape = (text) => String(text).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
 
@@ -1354,23 +1542,30 @@ function setupPage(url, settings, catalogue, meta, known) {
 <span class="box">${escape(base)}</span>
 
 <h2>API key</h2>
-<span class="box">${
-  !settings.apikey
-    ? "(none: this deployment is open to anyone who finds it)"
-    : shown
-      ? escape(settings.apikey)
-      : "•••••••••••••••• (add ?apikey=… to this URL to check it)"
-}</span>${
-  !settings.apikey || known
-    ? ""
-    : shown
-      ? `\n<p class="hint">Shown to anyone who opens this page, so the address is the secret. <code>TSP_SHOW_KEY=0</code> shows it only to a request that already carries it.</p>`
-      : `\n<p class="hint">Not shown to a visitor who does not already have it. It is the key baked into the file, or whatever <code>TSP_APIKEY</code> is set to; unset <code>TSP_SHOW_KEY</code> to show it to anyone.</p>`
+${
+  hosted
+    ? `<p>Keys here are made on request, signed and kept by nobody: one for you, as many as you like, each rate-limited on its own.</p>
+<p><button id="get" type="button">Get a key</button></p>
+<span class="box" id="key">(press the button, or GET /api/v1/key)</span>
+<p class="hint">Save it. Your client sends it as <code>?apikey=</code>, <code>X-Api-Key:</code> or <code>Authorization: Bearer</code>.</p>`
+    : `<span class="box">${
+        !settings.apikey
+          ? "(none: this deployment is open to anyone who finds it)"
+          : shown
+            ? escape(settings.apikey)
+            : "•••••••••••••••• (add ?apikey=… to this URL to check it)"
+      }</span>${
+        !settings.apikey || known
+          ? ""
+          : shown
+            ? `\n<p class="hint">Shown to anyone who opens this page, so the address is the secret. <code>TSP_SHOW_KEY=0</code> shows it only to a request that already carries it.</p>`
+            : `\n<p class="hint">Not shown to a visitor who does not already have it. It is the key baked into the file, or whatever <code>TSP_APIKEY</code> is set to; unset <code>TSP_SHOW_KEY</code> to show it to anyone.</p>`
+      }`
 }
 
 <h2>Try it</h2>
-<span class="box">${escape(example)}</span>
-<p><a href="${escape(example)}">Open that search</a></p>
+<span class="box" id="example">${escape(example)}</span>
+<p><a id="open" href="${escape(example)}">Open that search</a></p>
 
 <h2>Searching ${enabled.length} of ${catalogue.length} indexes</h2>
 <table><tbody>
@@ -1388,7 +1583,27 @@ Refreshed hourly from the feed, so this list changes without you re-pasting anyt
 <p>Sites come from <a href="https://github.com/prajwalch/TorrentSearch" rel="noopener">prajwalch/TorrentSearch</a>${meta.upstream?.commit ? ` at <code>${escape(String(meta.upstream.commit).slice(0, 12))}</code>` : ""}.
 Source: <a href="https://github.com/momzv2022-ctrl/tsp-torrent-search-api" rel="noopener">momzv2022-ctrl/tsp-torrent-search-api</a>.</p>
 </footer>
-</main></body></html>`;
+</main>${
+  hosted
+    ? `
+<script>
+document.getElementById("get").onclick = async () => {
+  const button = document.getElementById("get");
+  button.disabled = true;
+  try {
+    const got = await (await fetch("/api/v1/key", { method: "POST" })).json();
+    document.getElementById("key").textContent = got.apikey || got.error || "no key came back";
+    if (got.example) {
+      document.getElementById("example").textContent = got.example;
+      document.getElementById("open").href = got.example;
+    }
+  } finally {
+    button.disabled = false;
+  }
+};
+</script>`
+    : ""
+}</body></html>`;
 }
 
 export default {
@@ -1396,19 +1611,26 @@ export default {
     const url = new URL(request.url);
     const config = settings(env);
     const nowMs = Date.now();
+    const waitUntil = ctx?.waitUntil?.bind(ctx);
+    const minting = url.pathname === "/api/v1/key";
 
     if (request.method === "OPTIONS") {
       return new Response(null, {
         status: 204,
-        headers: { "access-control-allow-origin": "*", "access-control-allow-headers": "x-api-key, authorization", "access-control-allow-methods": "GET, OPTIONS" },
+        headers: { "access-control-allow-origin": "*", "access-control-allow-headers": "x-api-key, authorization", "access-control-allow-methods": "GET, POST, OPTIONS" },
       });
     }
-    if (request.method !== "GET") return json(405, { error: "method not allowed" });
+    if (request.method !== "GET" && !(request.method === "POST" && minting)) return json(405, { error: "method not allowed" });
 
-    const { catalogue, meta } = await loadFeed(config, nowMs, ctx?.waitUntil?.bind(ctx));
+    // A relay works for other deployments and for nobody else: no page, no
+    // search, no key to hand out, nothing for a stranger who finds the address.
+    if (config.relayOnly && url.pathname !== "/api/v1/relay" && url.pathname !== "/api/v1/health") return json(404, { error: "not found" });
+
+    const { catalogue, meta } = await loadFeed(config, nowMs, waitUntil);
+    const ip = request.headers.get("cf-connecting-ip") || "";
 
     if (url.pathname === "/" || url.pathname === "/index.html") {
-      const known = keyMatches(requestKey(url, request), config.apikey);
+      const known = !config.keySecret && keyMatches(requestKey(url, request), config.apikey);
       return new Response(setupPage(url, config, catalogue, meta, known), {
         headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" },
       });
@@ -1418,14 +1640,24 @@ export default {
       return json(200, {
         ok: true,
         build: BUILD,
+        mode: config.relayOnly ? "relay" : config.keySecret ? "hosted" : config.apikey ? "keyed" : "open",
         catalogue: { source: meta.source, serial: meta.serial ?? null, issued_at: meta.issued_at ?? null, upstream: meta.upstream ?? null },
         indexes: { known: catalogue.length, enabled: chosen(catalogue, config).length },
       });
     }
 
-    if (!keyMatches(requestKey(url, request), config.apikey)) {
-      return json(401, { error: "bad or missing api key" });
+    // A hosted deployment hands a key to whoever asks, so the asking is
+    // rate-limited by address; the key itself costs nothing to make or keep.
+    if (minting) {
+      if (!config.keySecret) return json(404, { error: "this deployment has one key, set by whoever deployed it; its front page shows it" });
+      if (await limited(config.limiters.keys, `ip:${ip}`)) return tooMany();
+      const apikey = await mintKey(config.keySecret);
+      const base = `${url.protocol}//${url.host}`;
+      return json(200, { apikey, url: base, example: `${base}/api/v1/search?q=ubuntu&apikey=${apikey}` });
     }
+
+    const who = await authorize(requestKey(url, request), config);
+    if (!who.ok) return json(401, { error: "bad or missing api key" });
 
     if (url.pathname === "/api/v1/indexers") {
       return json(200, {
@@ -1443,8 +1675,12 @@ export default {
 
     // Run a descriptor that is not in the catalogue yet, against the live site.
     // This is how a new index gets written: try it here, read the rows it
-    // produces, then commit the descriptor that produced them.
-    if (url.pathname === "/api/v1/try") {
+    // produces, then commit the descriptor that produced them. `/api/v1/relay`
+    // is the same run answered whole, for another deployment to merge. Either
+    // fetches whatever URL the descriptor names, on this deployment's behalf,
+    // so a hosted deployment lets only the operator's key do it.
+    if (url.pathname === "/api/v1/try" || url.pathname === "/api/v1/relay") {
+      if (config.keySecret && !who.admin) return json(403, { error: "this takes the operator's key, not one from the front page" });
       let descriptor;
       try {
         descriptor = JSON.parse(url.searchParams.get("d") || "");
@@ -1453,12 +1689,17 @@ export default {
       }
       const problem = descriptorProblem(descriptor);
       if (problem) return json(400, { error: problem });
-      const answer = await askIndex(descriptor, readQuery(url, config).terms || "ubuntu", config, nowMs);
-      return json(200, { id: answer.id, origin: answer.origin, problems: answer.problems, count: answer.rows.length, rows: answer.rows.slice(0, 10) });
+      const ran = await askIndex(descriptor, readQuery(url, config).terms || "ubuntu", config, nowMs);
+      if (url.pathname === "/api/v1/relay") return json(200, ran);
+      return json(200, { id: ran.id, origin: ran.origin, problems: ran.problems, count: ran.rows.length, rows: ran.rows.slice(0, 10) });
     }
 
     if (url.pathname === "/api/v1/search") {
-      return json(200, await search(readQuery(url, config), catalogue, config, nowMs));
+      if (!who.admin && ((await limited(config.limiters.search, `key:${who.id}`)) || (await limited(config.limiters.search, `ip:${ip}`)))) return tooMany();
+      const { body, hit } = await cachedSearch(readQuery(url, config), catalogue, config, nowMs, waitUntil);
+      const response = json(200, body);
+      response.headers.set("x-tsp-cache", hit ? "hit" : "miss");
+      return response;
     }
 
     return json(404, { error: "not found" });
@@ -1468,7 +1709,17 @@ export default {
 export const __testing = {
   BAKED_CATALOGUE,
   CATEGORIES,
+  answer,
   askIndex,
+  askRelay,
+  authorize,
+  cacheKey,
+  cachedSearch,
+  gather,
+  hmacHex,
+  limited,
+  mintKey,
+  signedKeyId,
   browseQuery,
   buildRequest,
   chosen,

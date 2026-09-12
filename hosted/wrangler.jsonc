@@ -1,0 +1,32 @@
+// The hosted deployment: api.tspsearch.dev, one Worker that hands a key to
+// anyone who asks. `main` is the built file, so `npm run build` first, then
+//
+//     npx wrangler deploy -c hosted/wrangler.jsonc
+//
+// Secrets are set once and survive every deploy:
+//
+//     npx wrangler secret put TSP_KEY_SECRET -c hosted/wrangler.jsonc   what keys are signed with; a new one voids every key
+//     npx wrangler secret put TSP_ADMIN_KEY  -c hosted/wrangler.jsonc   the operator's key: unlimited, and the one /api/v1/try takes
+//     npx wrangler secret put TSP_RELAY_KEY  -c hosted/wrangler.jsonc   the relay's own TSP_APIKEY
+//
+// The two rate limiters are per data centre and permissive by design: they
+// stop one key or one address from hammering, not count anything exactly.
+{
+  "name": "tsp-api",
+  "main": "../docs/worker.js",
+  "compatibility_date": "2026-09-01",
+  "workers_dev": false,
+  "routes": [{ "pattern": "api.tspsearch.dev", "custom_domain": true }],
+  "keep_vars": true,
+  "vars": {
+    "TSP_NSFW": "0",
+    "TSP_CACHE": "600",
+    "TSP_RELAY_URL": "https://relay.tspsearch.dev",
+    "TSP_RELAY_INDEXES": "bitsearch,nyaa",
+    "TSP_ALSO": "bitsearch,nyaa"
+  },
+  "ratelimits": [
+    { "name": "TSP_RATE_SEARCH", "namespace_id": "1001", "simple": { "limit": 30, "period": 60 } },
+    { "name": "TSP_RATE_KEYS", "namespace_id": "1002", "simple": { "limit": 5, "period": 60 } }
+  ]
+}

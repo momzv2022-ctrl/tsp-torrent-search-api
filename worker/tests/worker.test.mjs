@@ -675,3 +675,209 @@ test("the front page marks an adult index as one", async () => {
   const page = await (await call("/")).text();
   assert.match(page, /Sukebei<\/a> <span class="k">adult<\/span>/);
 });
+
+// --- hosted mode ---------------------------------------------------------------
+
+const HOSTED = { TSP_KEY_SECRET: "s3cret" };
+const callFrom = (path, env, ip) => worker.fetch(new Request(`https://w.example${path}`, { headers: { "cf-connecting-ip": ip } }), env, { waitUntil() {} });
+
+test("a hosted deployment mints a signed key for whoever asks, and honours it", async () => {
+  stubFetch({ "feed.json": { status: 404 } });
+  const minted = await (await call("/api/v1/key", HOSTED)).json();
+  assert.match(minted.apikey, /^[0-9a-f]{24}\.[0-9a-f]{32}$/);
+  assert.equal(minted.url, "https://w.example");
+  assert.match(minted.example, /apikey=/);
+
+  assert.equal((await call(`/api/v1/indexers?apikey=${minted.apikey}`, HOSTED)).status, 200);
+  assert.equal((await call("/api/v1/indexers", HOSTED)).status, 401, "no key, no search");
+  const forged = `${minted.apikey.slice(0, 24)}.${"0".repeat(32)}`;
+  assert.equal((await call(`/api/v1/indexers?apikey=${forged}`, HOSTED)).status, 401, "a wrong signature is a wrong key");
+  const other = await (await call("/api/v1/key", { TSP_KEY_SECRET: "another" })).json();
+  assert.equal((await call(`/api/v1/indexers?apikey=${other.apikey}`, HOSTED)).status, 401, "a key signed under another secret is not this deployment's");
+
+  const posted = await worker.fetch(new Request("https://w.example/api/v1/key", { method: "POST" }), HOSTED, { waitUntil() {} });
+  assert.equal(posted.status, 200, "the front page's button POSTs");
+  const elsewhere = await worker.fetch(new Request("https://w.example/api/v1/search", { method: "POST" }), HOSTED, { waitUntil() {} });
+  assert.equal(elsewhere.status, 405, "and nothing else takes a POST");
+  assert.equal((await (await call("/api/v1/health", HOSTED)).json()).mode, "hosted");
+});
+
+test("a single-key deployment does not mint; it has the one key it was given", async () => {
+  stubFetch({ "feed.json": { status: 404 } });
+  assert.equal((await call("/api/v1/key", { TSP_APIKEY: "sec" })).status, 404);
+  assert.equal((await call("/api/v1/key")).status, 404);
+});
+
+test("a denied key id is refused, and a new secret refuses them all", async () => {
+  stubFetch({ "feed.json": { status: 404 } });
+  const { apikey } = await (await call("/api/v1/key", HOSTED)).json();
+  const id = apikey.split(".")[0];
+  assert.equal((await call(`/api/v1/indexers?apikey=${apikey}`, { ...HOSTED, TSP_KEY_DENY: `abc, ${id}` })).status, 401);
+  assert.equal((await call(`/api/v1/indexers?apikey=${apikey}`, { ...HOSTED, TSP_KEY_DENY: "abc" })).status, 200);
+  assert.equal((await call(`/api/v1/indexers?apikey=${apikey}`, { TSP_KEY_SECRET: "rotated" })).status, 401);
+});
+
+test("the operator's key is above the signed ones, and alone may run a descriptor", async () => {
+  stubFetch({ "feed.json": { status: 404 }, "new.example": { body: JSON.stringify([{ n: "Thing", h: "c".repeat(40) }]) } });
+  const env = { ...HOSTED, TSP_ADMIN_KEY: "op" };
+  const descriptor = { id: "new", kind: "json", origins: ["https://new.example"], rows: "", fields: { name: "n", infohash: "h" } };
+  const d = encodeURIComponent(JSON.stringify(descriptor));
+  const { apikey } = await (await call("/api/v1/key", env)).json();
+
+  assert.equal((await call(`/api/v1/try?d=${d}&apikey=${apikey}`, env)).status, 403, "a key from the front page fetches nothing of its choosing");
+  assert.equal((await call(`/api/v1/relay?d=${d}&apikey=${apikey}`, env)).status, 403);
+  assert.equal((await call(`/api/v1/try?d=${d}&apikey=op`, env)).status, 200);
+  assert.equal((await call("/api/v1/indexers?apikey=op", env)).status, 200, "and it searches like any key");
+  assert.equal((await call(`/api/v1/try?d=${d}&apikey=x`, { TSP_APIKEY: "x" })).status, 200, "a single-key deployment is its owner's, and try stays open to the key");
+});
+
+test("the hosted front page hands out keys and shows none", async () => {
+  stubFetch({ "feed.json": { status: 404 } });
+  const page = await (await call("/", { ...HOSTED, TSP_APIKEY: "never-shown" })).text();
+  assert.match(page, /Get a key/);
+  assert.match(page, /api\/v1\/key/);
+  assert.ok(!page.includes("never-shown"));
+  assert.match(page, /apikey=YOUR-KEY/);
+});
+
+test("a rate-limit binding, when bound, says no and the Worker says 429", async () => {
+  stubFetch({ "feed.json": { status: 404 } });
+  const counted = [];
+  const no = { limit: async ({ key }) => { counted.push(key); return { success: false }; } };
+  const yes = { limit: async ({ key }) => { counted.push(key); return { success: true }; } };
+
+  const limitedKeys = await callFrom("/api/v1/key", { ...HOSTED, TSP_RATE_KEYS: no }, "203.0.113.9");
+  assert.equal(limitedKeys.status, 429);
+  assert.equal(limitedKeys.headers.get("retry-after"), "10");
+  assert.deepEqual(counted, ["ip:203.0.113.9"], "minting is counted by address");
+
+  const { apikey } = await (await callFrom("/api/v1/key", { ...HOSTED, TSP_RATE_KEYS: yes }, "203.0.113.9")).json();
+  counted.length = 0;
+  assert.equal((await callFrom(`/api/v1/search?q=x&apikey=${apikey}`, { ...HOSTED, TSP_RATE_SEARCH: no }, "203.0.113.9")).status, 429);
+  assert.deepEqual(counted, [`key:${apikey.split(".")[0]}`], "a search is counted against its key first");
+  assert.equal((await callFrom("/api/v1/search?q=x&apikey=op", { ...HOSTED, TSP_ADMIN_KEY: "op", TSP_RATE_SEARCH: no }, "203.0.113.9")).status, 200, "the operator is not counted");
+  assert.equal((await callFrom(`/api/v1/search?q=x&apikey=${apikey}`, HOSTED, "203.0.113.9")).status, 200, "no binding, no limit");
+  const broken = { limit: async () => { throw new Error("no"); } };
+  assert.equal((await callFrom(`/api/v1/search?q=x&apikey=${apikey}`, { ...HOSTED, TSP_RATE_SEARCH: broken }, "203.0.113.9")).status, 200, "a limiter that fails limits nothing");
+});
+
+test("TSP_ALSO turns a switched-off index on without freezing the list", async () => {
+  stubFetch({ "feed.json": { body: catalogueFeed() } });
+  const before = await (await call("/api/v1/indexers")).json();
+  assert.equal(before.indexers.find((one) => one.id === "bitsearch").enabled, false);
+  const after = await (await call("/api/v1/indexers", { TSP_ALSO: "bitsearch" })).json();
+  assert.equal(after.indexers.find((one) => one.id === "bitsearch").enabled, true);
+  assert.equal(after.indexers.filter((one) => one.enabled).length, before.indexers.filter((one) => one.enabled).length + 1, "and nothing else changed");
+});
+
+test("indexes named in TSP_RELAY_INDEXES are asked through the relay, and merge like any other", async () => {
+  const hash = "d".repeat(40);
+  const rows = [{ name: "Ubuntu Relayed", infohash: hash, magnet: `magnet:?xt=urn:btih:${hash}`, seeders: 9, indexer: "piratebay" }];
+  const asked = stubFetch({
+    "feed.json": { body: catalogueFeed() },
+    "relay.example/api/v1/relay": { body: JSON.stringify({ id: "piratebay", origin: "https://apibay.org", problems: [], rows }) },
+    "torrents-csv.com": { body: fixture("torrentscsv.json") },
+  });
+  const env = { TSP_RELAY_URL: "https://relay.example", TSP_RELAY_KEY: "rk", TSP_RELAY_INDEXES: "piratebay", TSP_INDEXES: "piratebay,torrentscsv" };
+  const body = await (await call("/api/v1/search?q=ubuntu", env)).json();
+  const relayed = asked.find((one) => one.url.includes("relay.example"));
+  assert.ok(relayed, "the relay was asked");
+  assert.equal(relayed.init.headers["x-api-key"], "rk");
+  assert.match(decodeURIComponent(relayed.url), /"id":"piratebay"/, "with the descriptor to run");
+  assert.match(decodeURIComponent(relayed.url), /q=ubuntu/, "and the query");
+  assert.ok(!asked.some((one) => one.url.startsWith("https://apibay.org")), "and the site itself was not");
+  assert.deepEqual(body.engines.sort(), ["piratebay", "torrentscsv"]);
+  assert.ok(body.torrents.some((torrent) => torrent.name === "Ubuntu Relayed" && torrent.sources.includes("piratebay")));
+});
+
+test("a relay that fails is a failure of that index, not of the search", async () => {
+  stubFetch({ "feed.json": { body: catalogueFeed() }, "relay.example": { status: 502 }, "torrents-csv.com": { body: fixture("torrentscsv.json") } });
+  const env = { TSP_RELAY_URL: "https://relay.example", TSP_RELAY_KEY: "rk", TSP_RELAY_INDEXES: "piratebay", TSP_INDEXES: "piratebay,torrentscsv" };
+  const body = await (await call("/api/v1/search?q=ubuntu", env)).json();
+  assert.deepEqual(body.engines, ["torrentscsv"]);
+  assert.match(body.failures.piratebay[0], /relay: answered 502/);
+});
+
+test("the relay route answers whole, and a relay-only deployment answers nothing else", async () => {
+  stubFetch({ "feed.json": { status: 404 }, "new.example": { body: JSON.stringify([{ n: "Thing", h: "c".repeat(40) }]) } });
+  const descriptor = { id: "new", kind: "json", origins: ["https://new.example"], rows: "", fields: { name: "n", infohash: "h" } };
+  const d = encodeURIComponent(JSON.stringify(descriptor));
+  const env = { TSP_APIKEY: "rk", TSP_RELAY_ONLY: "1" };
+  const whole = await (await call(`/api/v1/relay?d=${d}&q=thing&apikey=rk`, env)).json();
+  assert.equal(whole.origin, "https://new.example");
+  assert.equal(whole.rows[0].indexer, "new", "rows as askIndex made them, indexer and all, so a merge elsewhere can use them");
+  assert.equal((await call(`/api/v1/relay?d=${d}`, env)).status, 401, "behind its key");
+  assert.equal((await call("/api/v1/search?q=x&apikey=rk", env)).status, 404);
+  assert.equal((await call("/?apikey=rk", env)).status, 404, "no page: the address is nobody's business");
+  assert.equal((await call("/api/v1/key", env)).status, 404);
+  assert.equal((await (await call("/api/v1/health", env)).json()).mode, "relay");
+});
+
+/** A stand-in for Cloudflare's cache: what was put is what match gives back, as often as asked. */
+function stubCache() {
+  const held = new Map();
+  globalThis.caches = {
+    default: {
+      match: async (key) => (held.has(key) ? new Response(held.get(key)) : undefined),
+      put: async (key, response) => {
+        held.set(key, await response.text());
+      },
+    },
+  };
+  return held;
+}
+
+test("a merged answer is kept for TSP_CACHE seconds and paged from the copy", async () => {
+  stubCache();
+  try {
+    const asked = stubFetch({ "feed.json": { body: catalogueFeed() }, "apibay.org": { body: fixture("piratebay.json") } });
+    const sites = () => asked.filter((one) => one.url.includes("apibay.org")).length;
+    const env = { TSP_INDEXES: "piratebay" };
+    const pending = [];
+    const settle = async () => {
+      await Promise.all(pending.splice(0));
+    };
+    const ask = (path, over = {}) => worker.fetch(new Request(`https://w.example${path}`), { ...env, ...over }, { waitUntil: (promise) => pending.push(promise) });
+
+    const first = await ask("/api/v1/search?q=ubuntu&limit=2");
+    await settle();
+    assert.equal(first.headers.get("x-tsp-cache"), "miss");
+    const page1 = await first.json();
+    assert.equal(sites(), 1);
+
+    const second = await ask("/api/v1/search?q=ubuntu&limit=2&offset=2");
+    assert.equal(second.headers.get("x-tsp-cache"), "hit");
+    const page2 = await second.json();
+    assert.equal(sites(), 1, "the second page asked nobody");
+    assert.equal(page2.count, page1.count);
+    assert.notEqual(page2.torrents[0]?.infohash, page1.torrents[0]?.infohash, "and is a different page");
+    assert.equal(page2.torrents[0].scraped_at, page1.torrents[0].scraped_at, "rows say when they were really fetched");
+
+    assert.equal((await ask("/api/v1/search?q=ubuntu&limit=2", { TSP_CACHE: "0" })).headers.get("x-tsp-cache"), "miss");
+    assert.equal(sites(), 2, "TSP_CACHE=0 asks every time");
+    assert.equal((await ask("/api/v1/search?q=ubuntu&cat=video")).headers.get("x-tsp-cache"), "miss", "a different question is a different key");
+    await settle();
+    assert.equal((await ask("/api/v1/search?q=ubuntu&min_seeders=5")).headers.get("x-tsp-cache"), "hit", "a seeder floor is applied to the copy, not asked again");
+  } finally {
+    delete globalThis.caches;
+  }
+});
+
+test("an answer nobody gave is not kept, and a cache that fails is no cache", async () => {
+  const held = stubCache();
+  try {
+    stubFetch({ "feed.json": { body: catalogueFeed() }, "apibay.org": { status: 503 } });
+    const pending = [];
+    const failed = await worker.fetch(new Request("https://w.example/api/v1/search?q=ubuntu"), { TSP_INDEXES: "piratebay" }, { waitUntil: (promise) => pending.push(promise) });
+    await Promise.all(pending);
+    assert.equal(failed.status, 200);
+    assert.equal(held.size, 0);
+
+    globalThis.caches.default.match = async () => {
+      throw new Error("no cache here");
+    };
+    assert.equal((await call("/api/v1/search?q=ubuntu", { TSP_INDEXES: "piratebay" })).status, 200);
+  } finally {
+    delete globalThis.caches;
+  }
+});

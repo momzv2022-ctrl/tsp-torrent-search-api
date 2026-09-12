@@ -100,6 +100,8 @@ that fails is listed under `failures` and does not fail the search.
 | `/api/v1/indexers` | what it can search, and what is on |
 | `/api/v1/health` | which catalogue and which build it is running, no key needed |
 | `/api/v1/try?d=…` | run a descriptor that is not in the catalogue yet |
+| `/api/v1/key` | on a hosted deployment, a fresh key for whoever asks |
+| `/api/v1/relay?d=…` | `try` answered whole, for another deployment to merge |
 
 ## Settings
 
@@ -117,6 +119,35 @@ on the next request, and they survive a rebuild.
 | `TSP_TIMEOUT` | seconds to wait on one index (default 8) |
 | `TSP_FEED_URL` | a catalogue of your own |
 | `TSP_FEED` | `0` to pin the compiled catalogue and never refetch |
+| `TSP_ALSO` | search these too, by id, even where the catalogue has them off; unlike `TSP_INDEXES` it does not freeze the list |
+| `TSP_CACHE` | seconds a merged answer is kept and paged from (default 600); `0` for none. Only a custom domain has a working cache; on workers.dev every search is fresh |
+
+## Hosting it for others
+
+A pasted Worker is one person's: one key, one quota, one address. The same
+file also runs as a service, with a few more settings, and that is what
+api.tspsearch.dev is.
+
+| | |
+| --- | --- |
+| `TSP_KEY_SECRET` | hosted mode. `/api/v1/key` mints a key for whoever asks, `<id>.<signature>`, signed with this and stored nowhere; the `/` page grows a button for it and shows no key of its own. A new secret voids every key |
+| `TSP_KEY_DENY` | ids of keys to refuse, comma separated: the part before the dot |
+| `TSP_ADMIN_KEY` | the operator's key: never rate-limited, and in hosted mode the only key `/api/v1/try` and `/api/v1/relay` accept, since either fetches whatever URL a descriptor names |
+| `TSP_RATE_SEARCH`, `TSP_RATE_KEYS` | rate-limit bindings, declared in wrangler config rather than set as text: searches per key and per address, keys minted per address. Unbound, nothing is limited |
+| `TSP_RELAY_URL`, `TSP_RELAY_KEY`, `TSP_RELAY_INDEXES` | send these indexes (ids, or `*`) to another copy of this file standing at an address those sites answer, and merge what it says as if this Worker had asked |
+| `TSP_RELAY_ONLY` | `1` on that other copy: it answers `/api/v1/relay` and `/api/v1/health` behind its `TSP_APIKEY`, and nothing else, not even its page |
+
+Whether a site answers is a fact about the address asking. A few refuse
+Cloudflare's addresses and answer an ordinary server, so the hosted deployment
+keeps the fan-out on Cloudflare and sends only those through a relay, the same
+file running on a small VPS, reached over a Cloudflare Tunnel so no port is
+open and its address is never public. `TSP_ALSO` turns those indexes on at the
+front, since the catalogue has them off for everyone else. A merged answer is
+cached for `TSP_CACHE` seconds, so the relay sees only what nobody asked in
+the last ten minutes.
+
+[`hosted/wrangler.jsonc`](hosted/wrangler.jsonc) is the front's configuration:
+its route, its limits, its settings, and the three secrets it wants.
 
 ## Working on it
 
