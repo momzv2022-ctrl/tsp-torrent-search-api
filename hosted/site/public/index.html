@@ -27,13 +27,11 @@
   button:disabled { opacity:.5; cursor:default; }
   .note { text-align:center; font-size:13px; color:var(--dim); margin:.5rem 0 0; }
   .clients { display:flex; gap:.9rem; justify-content:center; align-items:center; flex-wrap:wrap; margin:.25rem 0 .5rem; }
-  a.plugin { display:inline-flex; align-items:center; gap:.6rem; height:40px; padding:0 1.1rem 0 .9rem; background:#000; color:#fff; text-decoration:none;
+  a.client { display:inline-flex; align-items:center; gap:.6rem; height:40px; padding:0 1.1rem 0 .9rem; background:#000; color:#fff; text-decoration:none;
              font-size:14px; font-weight:600; letter-spacing:.01em; border-radius:0; border:1px solid #000; white-space:nowrap; }
-  a.plugin:hover { background:#1a1a1a; }
-  a.plugin svg { width:18px; height:18px; fill:none; stroke:#fff; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; flex:none; }
-  /* Google's badge carries its own transparent margin, so it is drawn taller to stand level with the button beside it. */
-  a.play { display:inline-flex; height:40px; align-items:center; }
-  a.play img { height:56px; width:auto; display:block; }
+  a.client:hover { background:#1a1a1a; }
+  a.client svg { width:18px; height:18px; flex:none; }
+  a.client svg.arrow { fill:none; stroke:#fff; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
   .how { font-size:13px; color:var(--dim); text-align:center; margin:.6rem auto 0; max-width:36rem; }
   table { border-collapse:collapse; width:100%; font-size:13.5px; background:#fff; border:1px solid var(--line); border-radius:10px; overflow:hidden; }
   th, td { text-align:left; padding:.55rem .75rem; border-top:1px solid var(--line); }
@@ -74,12 +72,18 @@
 
   <h4>Supported free clients</h4>
   <div class="clients">
-    <a class="plugin" id="plugin" href="/tsp.py" download="tsp.py">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M4 19h16"/></svg>
+    <a class="client" id="plugin" href="/tsp.py" download="tsp.py">
+      <svg class="arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M4 19h16"/></svg>
       qBittorrent search plugin
     </a>
-    <a class="play" href="https://play.google.com/store/apps/details?id=io.github.raul2hot.oriole" rel="noopener">
-      <img alt="Get it on Google Play" src="https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png">
+    <a class="client" href="https://play.google.com/store/apps/details?id=io.github.raul2hot.oriole" rel="noopener">
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path fill="#00d7fe" d="M3 2.4v19.2L13.2 12z"/>
+        <path fill="#00f076" d="M3 2.4 13.2 12l3.6-3.6L4.6 1.7z"/>
+        <path fill="#ff3a44" d="M3 21.6 13.2 12l3.6 3.6L4.6 22.3z"/>
+        <path fill="#ffd500" d="m16.8 8.4 3.9 2.2c1 .6 1 1.7 0 2.3l-3.9 2.2L13.2 12z"/>
+      </svg>
+      Oriole on Google Play
     </a>
   </div>
   <p class="how">
@@ -211,21 +215,29 @@ el("plugin").onclick = plugin;
 
 // --- the wind ---------------------------------------------------------------------
 //
-// A lattice of 2px dots, one at every crossing of a 50px grid, each pushed
-// off its crossing by the wind where it stands and pulled back when the wind
-// drops. The wind is a vector field: a slow Perlin-noise flow everywhere, plus
-// gusts that enter at random points along the top and blow down the page.
-// A gust passing through shows as a ripple crossing the grid.
+// A lattice of 2px dots at every crossing of a 10px grid, each pushed off its
+// crossing by the wind where it stands and pulled back as it drops. The wind
+// is a vector field: a slow Perlin-noise flow everywhere, plus gusts that
+// enter at random points along the top and blow down the page, so a gust
+// passing through reads as a ripple crossing the grid. The field is sampled
+// on a coarse grid and interpolated to the dots, and the dots are written
+// straight into a pixel buffer, which is what keeps tens of thousands of them
+// cheap.
 
 (() => {
   const canvas = el("wind");
   if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
   const ctx = canvas.getContext("2d");
-  const CELL = 50;
+  const PITCH = 10;
+  const COARSE = 40;
+  const MOST = 40000;
   const REST = [207, 212, 220];
   const GUST = [91, 141, 239];
-  let W = 0, H = 0, dpr = 1, dots = [];
   const gusts = [];
+  let W = 0, H = 0, dpr = 1, pitch = PITCH;
+  let cols = 0, rows = 0, dx, dy, ss;
+  let ccols = 0, crows = 0, cvx, cvy;
+  let image, pixels;
   let last = performance.now();
   let nextGust = 0;
   let running = true;
@@ -264,18 +276,20 @@ el("plugin").onclick = plugin;
   function size() {
     dpr = Math.min(devicePixelRatio || 1, 2);
     W = innerWidth; H = innerHeight;
-    canvas.width = W * dpr; canvas.height = H * dpr;
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    dots = [];
-    for (let y = 0; y <= H + CELL; y += CELL) {
-      for (let x = 0; x <= W + CELL; x += CELL) dots.push({ x, y, dx: 0, dy: 0, s: 0 });
-    }
+    canvas.width = Math.round(W * dpr); canvas.height = Math.round(H * dpr);
+    pitch = PITCH * Math.max(1, Math.ceil(Math.sqrt((W * H) / (PITCH * PITCH) / MOST)));
+    cols = Math.floor(W / pitch) + 1; rows = Math.floor(H / pitch) + 1;
+    dx = new Float32Array(cols * rows); dy = new Float32Array(cols * rows); ss = new Float32Array(cols * rows);
+    ccols = Math.floor(W / COARSE) + 2; crows = Math.floor(H / COARSE) + 2;
+    cvx = new Float32Array(ccols * crows); cvy = new Float32Array(ccols * crows);
+    image = ctx.createImageData(canvas.width, canvas.height);
+    pixels = new Uint32Array(image.data.buffer);
   }
   addEventListener("resize", size);
   size();
 
   // The wind at a point: the noise flow, and every gust's push.
-  function wind(x, y, t) {
+  function wind(x, y, t, out) {
     const angle = noise(x * 0.0022, y * 0.0022, t * 0.12) * Math.PI * 2;
     const calm = 0.25 + 0.25 * (noise(x * 0.0015 + 40, y * 0.0015, t * 0.08) + 1);
     let vx = Math.cos(angle) * calm;
@@ -286,9 +300,10 @@ el("plugin").onclick = plugin;
       vx += (ox / g.r) * 0.6 * push;
       vy += push;
     }
-    return { vx, vy };
+    out.vx = vx; out.vy = vy;
   }
 
+  const sample = { vx: 0, vy: 0 };
   function step(now) {
     if (!running) return;
     const dt = Math.min((now - last) / 1000, 0.05);
@@ -305,20 +320,51 @@ el("plugin").onclick = plugin;
       if (gusts[i].y > H + gusts[i].r * 2) gusts.splice(i, 1);
     }
 
-    ctx.clearRect(0, 0, W, H);
-    for (const d of dots) {
-      const w = wind(d.x, d.y, t);
-      const tx = w.vx * 14, ty = w.vy * 14;
-      d.dx += (tx - d.dx) * Math.min(1, 5 * dt);
-      d.dy += (ty - d.dy) * Math.min(1, 5 * dt);
-      const strength = Math.min(1, Math.hypot(w.vx, w.vy) / 2.2);
-      d.s += (strength - d.s) * Math.min(1, 4 * dt);
-      const r = REST[0] + (GUST[0] - REST[0]) * d.s;
-      const g = REST[1] + (GUST[1] - REST[1]) * d.s;
-      const b = REST[2] + (GUST[2] - REST[2]) * d.s;
-      ctx.fillStyle = `rgb(${r | 0},${g | 0},${b | 0})`;
-      ctx.fillRect(d.x + d.dx - 1, d.y + d.dy - 1, 2, 2);
+    // The field, on the coarse grid.
+    for (let j = 0; j < crows; j += 1) {
+      for (let i = 0; i < ccols; i += 1) {
+        wind(i * COARSE, j * COARSE, t, sample);
+        cvx[j * ccols + i] = sample.vx;
+        cvy[j * ccols + i] = sample.vy;
+      }
     }
+
+    // The dots: interpolate the field, ease toward it, write the pixels.
+    pixels.fill(0);
+    const follow = Math.min(1, 5 * dt), settle = Math.min(1, 4 * dt);
+    const side = Math.max(1, Math.round(dpr)) * 2;
+    const cw = canvas.width, ch = canvas.height;
+    for (let r = 0; r < rows; r += 1) {
+      const y = r * pitch;
+      const gy = y / COARSE, j = Math.min(gy | 0, crows - 2), fy = gy - j;
+      for (let c = 0; c < cols; c += 1) {
+        const x = c * pitch;
+        const gx = x / COARSE, i = Math.min(gx | 0, ccols - 2), fx = gx - i;
+        const a = j * ccols + i, b = a + 1, cc = a + ccols, d = cc + 1;
+        const vx = (cvx[a] * (1 - fx) + cvx[b] * fx) * (1 - fy) + (cvx[cc] * (1 - fx) + cvx[d] * fx) * fy;
+        const vy = (cvy[a] * (1 - fx) + cvy[b] * fx) * (1 - fy) + (cvy[cc] * (1 - fx) + cvy[d] * fx) * fy;
+        const n = r * cols + c;
+        dx[n] += (vx * 5 - dx[n]) * follow;
+        dy[n] += (vy * 5 - dy[n]) * follow;
+        const strength = Math.min(1, Math.hypot(vx, vy) / 2.2);
+        ss[n] += (strength - ss[n]) * settle;
+        const s = ss[n];
+        const red = (REST[0] + (GUST[0] - REST[0]) * s) | 0;
+        const green = (REST[1] + (GUST[1] - REST[1]) * s) | 0;
+        const blue = (REST[2] + (GUST[2] - REST[2]) * s) | 0;
+        const color = 0xff000000 | (blue << 16) | (green << 8) | red;
+        const px = Math.round((x + dx[n]) * dpr) - side / 2, py = Math.round((y + dy[n]) * dpr) - side / 2;
+        for (let yy = 0; yy < side; yy += 1) {
+          const row = py + yy;
+          if (row < 0 || row >= ch) continue;
+          for (let xx = 0; xx < side; xx += 1) {
+            const col = px + xx;
+            if (col >= 0 && col < cw) pixels[row * cw + col] = color;
+          }
+        }
+      }
+    }
+    ctx.putImageData(image, 0, 0);
     requestAnimationFrame(step);
   }
 
