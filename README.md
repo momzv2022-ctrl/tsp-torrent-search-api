@@ -148,6 +148,10 @@ the last ten minutes.
 
 [`hosted/wrangler.jsonc`](hosted/wrangler.jsonc) is the front's configuration:
 its route, its limits, its settings, and the three secrets it wants.
+[`hosted/relay/`](hosted/relay/) is the relay: the same worker.js run by
+workerd, the runtime Cloudflare itself runs Workers on, as a systemd service
+on a Debian or Ubuntu server, and a script that puts it behind a tunnel.
+`install.sh` again after a `git pull` is how the relay gets a new worker.js.
 
 ## Working on it
 

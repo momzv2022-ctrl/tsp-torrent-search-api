@@ -1,0 +1,22 @@
+# systemd unit for the relay. Installed by install.sh; the key lives in
+# /etc/tsp-relay.env as TSP_APIKEY=..., readable by root only.
+
+[Unit]
+Description=TSP relay (workerd)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+EnvironmentFile=/etc/tsp-relay.env
+WorkingDirectory=/opt/tsp-relay
+ExecStart=/opt/tsp-relay/node_modules/.bin/workerd serve /opt/tsp-relay/config.capnp
+Restart=always
+RestartSec=3
+DynamicUser=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+NoNewPrivileges=yes
+
+[Install]
+WantedBy=multi-user.target
