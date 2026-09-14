@@ -7,11 +7,11 @@
   "upstream": {
     "repo": "prajwalch/TorrentSearch",
     "url": "https://github.com/prajwalch/TorrentSearch",
-    "commit": "2d718a34a7e1bb99c711846f151e50b59b5364be",
-    "committed_at": "2026-09-12T07:49:34Z",
+    "commit": "d8078eaaa5b47d72b423350f33ba1f4873cc619a",
+    "committed_at": "2026-09-14T03:42:28Z",
     "dir": "app/src/main/kotlin/com/prajwalch/torrentsearch/providers",
     "providers": 43,
-    "synced_at": "2026-09-12T07:55:07Z"
+    "synced_at": "2026-09-14T05:26:17Z"
   },
   "count": 14,
   "indexes": [
