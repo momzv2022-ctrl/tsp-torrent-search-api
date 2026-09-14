@@ -132,7 +132,7 @@ api.tspsearch.dev is.
 | --- | --- |
 | `TSP_KEY_SECRET` | hosted mode. `/api/v1/key` mints a key for whoever asks, `<id>.<signature>`, signed with this and stored nowhere; the `/` page grows a button for it and shows no key of its own. A new secret voids every key |
 | `TSP_KEY_DENY` | ids of keys to refuse, comma separated: the part before the dot |
-| `TSP_ADMIN_KEY` | the operator's key: never rate-limited, and in hosted mode the only key `/api/v1/try` and `/api/v1/relay` accept, since either fetches whatever URL a descriptor names |
+| `TSP_ADMIN_KEY` | the operator's key: never rate-limited, always answered fresh (and what it finds replaces the cached copy everyone else gets), and in hosted mode the only key `/api/v1/try`, `/api/v1/relay` and `/api/v1/scrape` accept, since those fetch whatever they are told to |
 | `TSP_RATE_SEARCH`, `TSP_RATE_KEYS` | rate-limit bindings, declared in wrangler config rather than set as text: searches per key and per address, keys minted per address. Unbound, nothing is limited |
 | `TSP_RELAY_URL`, `TSP_RELAY_KEY`, `TSP_RELAY_INDEXES` | send these indexes (ids, or `*`) to another copy of this file standing at an address those sites answer, and merge what it says as if this Worker had asked |
 | `TSP_RELAY_ONLY` | `1` on that other copy: it answers `/api/v1/relay`, `/api/v1/scrape` and `/api/v1/health` behind its `TSP_APIKEY`, and nothing else, not even its page |

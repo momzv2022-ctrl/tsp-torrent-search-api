@@ -1484,12 +1484,14 @@ function cacheKey(query, settings) {
   return `https://cache.tsp.invalid/v1/search?${new URLSearchParams({ asked: JSON.stringify(asked) })}`;
 }
 
-async function cachedSearch(query, catalogue, settings, nowMs, waitUntil) {
+async function cachedSearch(query, catalogue, settings, nowMs, waitUntil, refresh = false) {
   const started = Date.now();
   const cache = settings.cacheS > 0 ? globalThis.caches?.default : null;
   const key = cache ? cacheKey(query, settings) : null;
 
-  if (cache) {
+  // The operator's own search is always fresh, and what it finds replaces the
+  // copy everyone else is served: that is how a cached answer gets purged.
+  if (cache && !refresh) {
     try {
       const held = await cache.match(key);
       if (held) return { body: answer(query, await held.json(), started), hit: true };
@@ -1777,7 +1779,7 @@ export default {
 
     if (url.pathname === "/api/v1/search") {
       if (!who.admin && ((await limited(config.limiters.search, `key:${who.id}`)) || (await limited(config.limiters.search, `ip:${ip}`)))) return tooMany();
-      const { body, hit } = await cachedSearch(readQuery(url, config), catalogue, config, nowMs, waitUntil);
+      const { body, hit } = await cachedSearch(readQuery(url, config), catalogue, config, nowMs, waitUntil, who.admin);
       const response = json(200, body);
       response.headers.set("x-tsp-cache", hit ? "hit" : "miss");
       return response;

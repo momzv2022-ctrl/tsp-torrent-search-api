@@ -934,3 +934,27 @@ test("a relay hands /api/v1/scrape to the service next door, hashes checked, beh
   assert.equal((await call("/api/v1/scrape?h=zz&apikey=rk", env)).status, 400);
   assert.equal((await call(`/api/v1/scrape?h=${"e".repeat(40)}&apikey=rk`, { TSP_APIKEY: "rk" })).status, 404, "no service configured, no route");
 });
+
+test("the operator's search is always fresh, and refreshes the copy everyone else gets", async () => {
+  stubCache();
+  try {
+    const asked = stubFetch({ "feed.json": { body: catalogueFeed() }, "apibay.org": { body: fixture("piratebay.json") } });
+    const sites = () => asked.filter((one) => one.url.startsWith("https://apibay.org")).length;
+    const env = { TSP_KEY_SECRET: "s3cret", TSP_ADMIN_KEY: "op", TSP_INDEXES: "piratebay" };
+    const pending = [];
+    const ask = (path) => worker.fetch(new Request(`https://w.example${path}`), env, { waitUntil: (promise) => pending.push(promise) });
+    const { apikey } = await (await ask("/api/v1/key")).json();
+
+    assert.equal((await ask(`/api/v1/search?q=ubuntu&apikey=${apikey}`)).headers.get("x-tsp-cache"), "miss");
+    await Promise.all(pending.splice(0));
+    assert.equal((await ask(`/api/v1/search?q=ubuntu&apikey=${apikey}`)).headers.get("x-tsp-cache"), "hit");
+    assert.equal(sites(), 1);
+
+    assert.equal((await ask("/api/v1/search?q=ubuntu&apikey=op")).headers.get("x-tsp-cache"), "miss", "the operator is never served the copy");
+    await Promise.all(pending.splice(0));
+    assert.equal(sites(), 2, "and asks the indexes again");
+    assert.equal((await ask(`/api/v1/search?q=ubuntu&apikey=${apikey}`)).headers.get("x-tsp-cache"), "hit", "which is what everyone else now gets");
+  } finally {
+    delete globalThis.caches;
+  }
+});

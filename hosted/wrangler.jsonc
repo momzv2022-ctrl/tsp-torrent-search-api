@@ -21,6 +21,7 @@
   "vars": {
     "TSP_NSFW": "0",
     "TSP_CACHE": "600",
+    "TSP_TIMEOUT": "5",
     "TSP_RELAY_URL": "https://relay.tspsearch.dev",
     "TSP_RELAY_INDEXES": "bitsearch,nyaa",
     "TSP_SCRAPE_URL": "https://relay.tspsearch.dev/api/v1/scrape",
