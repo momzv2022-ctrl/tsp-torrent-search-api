@@ -23,6 +23,7 @@
     "TSP_CACHE": "600",
     "TSP_RELAY_URL": "https://relay.tspsearch.dev",
     "TSP_RELAY_INDEXES": "bitsearch,nyaa",
+    "TSP_SCRAPE_URL": "https://relay.tspsearch.dev/api/v1/scrape",
     "TSP_ALSO": "bitsearch,nyaa"
   },
   "ratelimits": [

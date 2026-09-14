@@ -8,8 +8,8 @@
 #
 #     TSP_APIKEY=<the TSP_RELAY_KEY you set on the front>
 #
-# Puts the runtime and the Worker in /opt/tsp-relay, and (re)starts the
-# service. Running it again after a pull is how the relay gets a new
+# Puts the runtime, the Worker and the scrape service in /opt/tsp-relay, and
+# (re)starts both services. Running it again after a pull is how the relay gets a new
 # worker.js. The tunnel is tunnel.sh's job.
 set -eu
 
@@ -31,9 +31,14 @@ cd "$DIR"
 npm install --no-audit --no-fund --silent workerd@latest
 chmod -R a+rX "$DIR"
 
+cp "$HERE/scrape.py" "$DIR/scrape.py"
 cp "$HERE/tsp-relay.service" /etc/systemd/system/tsp-relay.service
+cp "$HERE/tsp-scrape.service" /etc/systemd/system/tsp-scrape.service
 systemctl daemon-reload
+systemctl enable --now tsp-scrape >/dev/null
+systemctl restart tsp-scrape
 systemctl enable --now tsp-relay >/dev/null
 systemctl restart tsp-relay
 sleep 2
+curl -sf http://127.0.0.1:8788/healthz >/dev/null && echo "scrape is up on 127.0.0.1:8788" || { echo "scrape did not answer; journalctl -u tsp-scrape -n 50" >&2; exit 1; }
 curl -sf http://127.0.0.1:8787/api/v1/health >/dev/null && echo "relay is up on 127.0.0.1:8787" || { echo "relay did not answer; journalctl -u tsp-relay -n 50" >&2; exit 1; }

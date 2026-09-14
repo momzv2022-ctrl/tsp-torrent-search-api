@@ -7,7 +7,7 @@
   "fixture": "torrentdownloads.xml",
   "enabled": true,
   "match": "name",
-  "note": "Searches any word of the query (\"Bethlehem Kudumba Unit\" answered with fifty Law & Order episodes), so it is held to the name. Answers Cloudflare's addresses as of 2026-09-11, with a 521 now and then; on 2026-09-05 it did not. Carries Indian regional releases the other reachable indexes lack.",
+  "note": "Searches any word of the query (\"Bethlehem Kudumba Unit\" answered with fifty Law & Order episodes), so it is held to the name. Answers Cloudflare's addresses as of 2026-09-11, with a 521 now and then; on 2026-09-05 it did not. Carries Indian regional releases the other reachable indexes lack. Its seeder counts are invented, so they are not read: its own recorded page gives a 2013 Ubuntu 12.10 server ISO 978 seeders, and on 2026-09-14 it gave a 2014 film 7513 against 0 on five public trackers, three copies of it at the top of a search. Rows stay, without numbers, so they rank below anything measured.",
   "origins": [
     "https://www.torrentdownloads.pro"
   ],
@@ -34,8 +34,6 @@
     "name": "title",
     "infohash": "info_hash",
     "size_bytes": "size",
-    "seeders": "seeders",
-    "leechers": "leechers",
     "first_seen": "pubDate",
     "description_url": {
       "from": "link"

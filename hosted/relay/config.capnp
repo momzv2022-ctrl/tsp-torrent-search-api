@@ -5,14 +5,15 @@
 # same docs/worker.js everyone deploys, in relay-only mode: it answers
 # /api/v1/relay behind its key and /api/v1/health, and nothing else. The
 # key comes from the environment (TSP_APIKEY, see tsp-relay.service), so
-# this file holds no secret and can be committed.
+# this file holds no secret and can be committed. "local" in the network
+# allow-list is what lets it reach the scrape service on loopback.
 
 using Workers = import "/workerd/workerd.capnp";
 
 const config :Workers.Config = (
   services = [
     (name = "relay", worker = .relay),
-    (name = "internet", network = (allow = ["public"], tlsOptions = (trustBrowserCas = true))),
+    (name = "internet", network = (allow = ["public", "local"], tlsOptions = (trustBrowserCas = true))),
   ],
   sockets = [
     (name = "http", address = "127.0.0.1:8787", http = (), service = "relay"),
@@ -28,6 +29,8 @@ const relay :Workers.Worker = (
     (name = "TSP_RELAY_ONLY", text = "1"),
     (name = "TSP_APIKEY", fromEnvironment = "TSP_APIKEY"),
     (name = "TSP_SHOW_KEY", text = "0"),
+    # scrape.py, next door: the Worker's /api/v1/scrape hands it the hashes.
+    (name = "TSP_SCRAPE_LOCAL", text = "http://127.0.0.1:8788/scrape"),
   ],
   globalOutbound = "internet",
 );

@@ -109,6 +109,11 @@ function settings(env = {}) {
     relayKey: text("TSP_RELAY_KEY"),
     relayIndexes: relayIndexes === "*" ? "*" : new Set(list("TSP_RELAY_INDEXES")),
     relayOnly: on("TSP_RELAY_ONLY"),
+    // Swarm measurement: where to ask (a relay's /api/v1/scrape), how many of
+    // the top rows to ask about, and on a relay, the loopback service it asks.
+    scrapeUrl: text("TSP_SCRAPE_URL"),
+    scrapeTop: number("TSP_SCRAPE_TOP", 50),
+    scrapeLocal: text("TSP_SCRAPE_LOCAL"),
     nsfw: !off("TSP_NSFW"),
     browse: !off("TSP_BROWSE"),
     limit: number("TSP_LIMIT", 100),
@@ -1297,7 +1302,53 @@ function merge(answers) {
 
   return [...byHash.values()]
     .map(({ indexer, ...row }) => row)
-    .sort((a, b) => (b.seeders ?? -1) - (a.seeders ?? -1) || (b.size_bytes ?? 0) - (a.size_bytes ?? 0));
+    .sort(bySwarm);
+}
+
+/** Most seeders first; a row with no count at all comes last, behind a measured zero. */
+const bySwarm = (a, b) => (b.seeders ?? -1) - (a.seeders ?? -1) || (b.size_bytes ?? 0) - (a.size_bytes ?? 0);
+
+/**
+ * Measure the swarms, because no index can be trusted to.
+ *
+ * Measured 2026-09-14: one index invents its counts outright (a 2014 film at
+ * 7513 seeders against 0 on five trackers), another reports the count from
+ * the day it first saw a torrent and never again (3335 against 1, two years
+ * on). Both won the top of a search on the strength of it. So a hosted
+ * deployment names a relay's `/api/v1/scrape` in `TSP_SCRAPE_URL`, which asks
+ * public trackers directly, and the top `TSP_SCRAPE_TOP` rows by claimed
+ * count are re-counted before anyone sees them: claimed numbers are replaced
+ * by measured ones, the row is marked `measured`, and the list is sorted
+ * again. Rows the trackers never reached keep their claim. Only the top is
+ * asked about because that is where an inflated number does its damage.
+ */
+async function measureSwarms(rows, settings) {
+  const top = rows.slice(0, settings.scrapeTop);
+  if (!top.length) return { rows, measured: 0 };
+  const url = new URL(settings.scrapeUrl);
+  url.searchParams.set("h", top.map((row) => row.infohash).join(","));
+  const control = new AbortController();
+  const timer = setTimeout(() => control.abort(), 6000);
+  try {
+    const response = await fetch(url, { headers: { "x-api-key": settings.relayKey, accept: "application/json" }, signal: control.signal });
+    if (!response.ok) return { rows, measured: 0, problem: `scrape answered ${response.status}` };
+    const got = await response.json();
+    const swarms = got.swarms || {};
+    let measured = 0;
+    for (const row of top) {
+      const swarm = swarms[row.infohash];
+      if (!swarm || !(swarm.answered > 0)) continue;
+      row.seeders = swarm.seeders;
+      row.leechers = swarm.leechers;
+      row.measured = true;
+      measured += 1;
+    }
+    return { rows: [...rows].sort(bySwarm), measured };
+  } catch (error) {
+    return { rows, measured: 0, problem: `scrape: ${error.name === "AbortError" ? "timed out" : String(error.message || error).slice(0, 120)}` };
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 /** A TSP torrent object, out of a merged row. */
@@ -1310,6 +1361,7 @@ function toTorrent(row, scrapedAt) {
   if (row.torrent_url) torrent.torrent_url = row.torrent_url;
   if (row.description_url) torrent.description_url = row.description_url;
   if (row.indexers?.length) torrent.sources = [...row.indexers].sort();
+  if (row.measured) torrent.measured = true;
   return torrent;
 }
 
@@ -1368,7 +1420,13 @@ async function gather(query, catalogue, settings, nowMs) {
   for (const one of answers) {
     if (!one.origin && one.problems.length) failures[one.id] = one.problems;
   }
-  return { rows: merge(answers), engines: answers.filter((one) => one.origin).map((one) => one.id), failures, browsing, scrapedAt };
+  let rows = merge(answers);
+  if (settings.scrapeUrl && rows.length) {
+    const checked = await measureSwarms(rows, settings);
+    rows = checked.rows;
+    if (checked.problem) failures.scrape = [checked.problem];
+  }
+  return { rows, engines: answers.filter((one) => one.origin).map((one) => one.id), failures, browsing, scrapedAt };
 }
 
 /** TSP's search result object, out of what was gathered, for the page that was asked for. */
@@ -1629,7 +1687,7 @@ export default {
 
     // A relay works for other deployments and for nobody else: no page, no
     // search, no key to hand out, nothing for a stranger who finds the address.
-    if (config.relayOnly && url.pathname !== "/api/v1/relay" && url.pathname !== "/api/v1/health") return json(404, { error: "not found" });
+    if (config.relayOnly && !["/api/v1/relay", "/api/v1/scrape", "/api/v1/health"].includes(url.pathname)) return json(404, { error: "not found" });
 
     const { catalogue, meta } = await loadFeed(config, nowMs, waitUntil);
     const ip = request.headers.get("cf-connecting-ip") || "";
@@ -1699,6 +1757,24 @@ export default {
       return json(200, { id: ran.id, origin: ran.origin, problems: ran.problems, count: ran.rows.length, rows: ran.rows.slice(0, 10) });
     }
 
+    // The swarm, as public trackers see it, from the scrape service next door
+    // (hosted/relay/scrape.py). A relay's front asks this for every fresh
+    // search; on a hosted front it is the operator's, like try.
+    if (url.pathname === "/api/v1/scrape") {
+      if (!config.scrapeLocal) return json(404, { error: "no scrape service on this deployment" });
+      if (config.keySecret && !who.admin) return json(403, { error: "this takes the operator's key, not one from the front page" });
+      const hashes = [...new Set((url.searchParams.get("h") || "").toLowerCase().split(",").filter((one) => /^[0-9a-f]{40}$/.test(one)))].slice(0, 50);
+      if (!hashes.length) return json(400, { error: "h must be infohashes, comma separated" });
+      const target = new URL(config.scrapeLocal);
+      target.searchParams.set("h", hashes.join(","));
+      try {
+        const answer = await fetch(target, { signal: AbortSignal.timeout(8000) });
+        return json(answer.status, await answer.json());
+      } catch (error) {
+        return json(502, { error: `scrape service: ${String(error.message || error).slice(0, 120)}` });
+      }
+    }
+
     if (url.pathname === "/api/v1/search") {
       if (!who.admin && ((await limited(config.limiters.search, `key:${who.id}`)) || (await limited(config.limiters.search, `ip:${ip}`)))) return tooMany();
       const { body, hit } = await cachedSearch(readQuery(url, config), catalogue, config, nowMs, waitUntil);
@@ -1723,6 +1799,7 @@ export const __testing = {
   gather,
   hmacHex,
   limited,
+  measureSwarms,
   mintKey,
   signedKeyId,
   browseQuery,

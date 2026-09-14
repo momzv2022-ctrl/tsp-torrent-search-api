@@ -135,7 +135,9 @@ api.tspsearch.dev is.
 | `TSP_ADMIN_KEY` | the operator's key: never rate-limited, and in hosted mode the only key `/api/v1/try` and `/api/v1/relay` accept, since either fetches whatever URL a descriptor names |
 | `TSP_RATE_SEARCH`, `TSP_RATE_KEYS` | rate-limit bindings, declared in wrangler config rather than set as text: searches per key and per address, keys minted per address. Unbound, nothing is limited |
 | `TSP_RELAY_URL`, `TSP_RELAY_KEY`, `TSP_RELAY_INDEXES` | send these indexes (ids, or `*`) to another copy of this file standing at an address those sites answer, and merge what it says as if this Worker had asked |
-| `TSP_RELAY_ONLY` | `1` on that other copy: it answers `/api/v1/relay` and `/api/v1/health` behind its `TSP_APIKEY`, and nothing else, not even its page |
+| `TSP_RELAY_ONLY` | `1` on that other copy: it answers `/api/v1/relay`, `/api/v1/scrape` and `/api/v1/health` behind its `TSP_APIKEY`, and nothing else, not even its page |
+| `TSP_SCRAPE_URL`, `TSP_SCRAPE_TOP` | a relay's `/api/v1/scrape`, asked about the top 50 rows of every fresh search: claimed seeder counts are replaced by what public trackers report, those rows are marked `measured`, and the list is sorted again |
+| `TSP_SCRAPE_LOCAL` | on the relay, the scrape service beside it, `hosted/relay/scrape.py` on loopback |
 
 Whether a site answers is a fact about the address asking. A few refuse
 Cloudflare's addresses and answer an ordinary server, so the hosted deployment
@@ -145,6 +147,14 @@ open and its address is never public. `TSP_ALSO` turns those indexes on at the
 front, since the catalogue has them off for everyone else. A merged answer is
 cached for `TSP_CACHE` seconds, so the relay sees only what nobody asked in
 the last ten minutes.
+
+No index can be trusted for seeder counts: one invents them, another reports
+the count from the day it first saw a torrent and never again, and either wins
+the top of a search on the strength of it. So the relay also runs a small
+scrape service that asks public trackers directly, and the front re-counts the
+top rows of every fresh search through it before anyone sees them. A row that
+was re-counted says `"measured": true`; a row the trackers never reached keeps
+what the index claimed.
 
 [`hosted/wrangler.jsonc`](hosted/wrangler.jsonc) is the front's configuration:
 its route, its limits, its settings, and the three secrets it wants.

@@ -881,3 +881,56 @@ test("an answer nobody gave is not kept, and a cache that fails is no cache", as
     delete globalThis.caches;
   }
 });
+
+// --- swarm measurement ------------------------------------------------------------
+
+test("the top rows of a search are re-counted by the trackers, and sorted by what they said", async () => {
+  const hash = (c) => c.repeat(40);
+  const claimed = [
+    { name: "Loud Fake", infohash: hash("a"), magnet: `magnet:?xt=urn:btih:${hash("a")}`, seeders: 7513, leechers: 900, indexer: "piratebay" },
+    { name: "Quiet Real", infohash: hash("b"), magnet: `magnet:?xt=urn:btih:${hash("b")}`, seeders: 40, leechers: 2, indexer: "piratebay" },
+    { name: "Unknown To Trackers", infohash: hash("c"), magnet: `magnet:?xt=urn:btih:${hash("c")}`, seeders: 300, leechers: 1, indexer: "piratebay" },
+  ];
+  const asked = stubFetch({
+    "feed.json": { body: catalogueFeed() },
+    "relay.example/api/v1/relay": { body: JSON.stringify({ id: "piratebay", origin: "https://apibay.org", problems: [], rows: claimed }) },
+    "relay.example/api/v1/scrape": { body: JSON.stringify({ swarms: { [hash("a")]: { seeders: 0, leechers: 3, answered: 5 }, [hash("b")]: { seeders: 203, leechers: 5, answered: 5 } }, trackers: 5 }) },
+  });
+  const env = { TSP_RELAY_URL: "https://relay.example", TSP_RELAY_KEY: "rk", TSP_RELAY_INDEXES: "piratebay", TSP_INDEXES: "piratebay", TSP_SCRAPE_URL: "https://relay.example/api/v1/scrape" };
+  const body = await (await call("/api/v1/search?q=thing", env)).json();
+  const scrape = asked.find((one) => one.url.includes("/api/v1/scrape"));
+  assert.ok(scrape, "the scrape service was asked");
+  assert.equal(scrape.init.headers["x-api-key"], "rk");
+  assert.match(decodeURIComponent(scrape.url), new RegExp(`${hash("a")},${hash("c")},${hash("b")}`), "about the rows in claimed order");
+  assert.deepEqual(body.torrents.map((t) => [t.name, t.seeders, t.measured ?? false]), [
+    ["Unknown To Trackers", 300, false],
+    ["Quiet Real", 203, true],
+    ["Loud Fake", 0, true],
+  ], "measured counts replace claims, the list is re-sorted, and a row no tracker knew keeps its claim");
+  assert.equal(body.failures, undefined);
+});
+
+test("a scrape service that fails leaves the claims alone and says so", async () => {
+  const hash = "d".repeat(40);
+  stubFetch({
+    "feed.json": { body: catalogueFeed() },
+    "relay.example/api/v1/relay": { body: JSON.stringify({ id: "piratebay", origin: "https://apibay.org", problems: [], rows: [{ name: "Thing", infohash: hash, magnet: `magnet:?xt=urn:btih:${hash}`, seeders: 9, indexer: "piratebay" }] }) },
+    "relay.example/api/v1/scrape": { status: 502 },
+  });
+  const env = { TSP_RELAY_URL: "https://relay.example", TSP_RELAY_KEY: "rk", TSP_RELAY_INDEXES: "piratebay", TSP_INDEXES: "piratebay", TSP_SCRAPE_URL: "https://relay.example/api/v1/scrape" };
+  const body = await (await call("/api/v1/search?q=thing", env)).json();
+  assert.equal(body.torrents[0].seeders, 9);
+  assert.equal(body.torrents[0].measured, undefined);
+  assert.deepEqual(body.failures, { scrape: ["scrape answered 502"] });
+});
+
+test("a relay hands /api/v1/scrape to the service next door, hashes checked, behind its key", async () => {
+  const asked = stubFetch({ "feed.json": { status: 404 }, "127.0.0.1:8788/scrape": { body: JSON.stringify({ swarms: { ["e".repeat(40)]: { seeders: 1, leechers: 0, answered: 3 } }, trackers: 5 }) } });
+  const env = { TSP_APIKEY: "rk", TSP_RELAY_ONLY: "1", TSP_SCRAPE_LOCAL: "http://127.0.0.1:8788/scrape" };
+  assert.equal((await call(`/api/v1/scrape?h=${"e".repeat(40)}`, env)).status, 401, "behind the key");
+  const good = await (await call(`/api/v1/scrape?h=${"E".repeat(40)},nonsense,${"e".repeat(40)}&apikey=rk`, env)).json();
+  assert.equal(good.swarms["e".repeat(40)].seeders, 1);
+  assert.match(asked.find((one) => one.url.includes("8788")).url, new RegExp(`h=${"e".repeat(40)}$`), "lower-cased, de-duplicated, nonsense dropped");
+  assert.equal((await call("/api/v1/scrape?h=zz&apikey=rk", env)).status, 400);
+  assert.equal((await call(`/api/v1/scrape?h=${"e".repeat(40)}&apikey=rk`, { TSP_APIKEY: "rk" })).status, 404, "no service configured, no route");
+});

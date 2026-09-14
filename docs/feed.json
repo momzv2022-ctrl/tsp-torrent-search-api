@@ -1,9 +1,9 @@
 {
   "//": "The catalogue of tsp-torrent-search-api. Built from catalogue/*.json by `npm run build`; every deployment refetches it hourly. Data only.",
   "tsp_feed_version": 1,
-  "serial": 5,
-  "issued_at": "2026-09-11T07:05:25Z",
-  "expires_at": "2027-03-10T07:05:25Z",
+  "serial": 6,
+  "issued_at": "2026-09-14T01:15:34Z",
+  "expires_at": "2027-03-13T01:15:34Z",
   "upstream": {
     "repo": "prajwalch/TorrentSearch",
     "url": "https://github.com/prajwalch/TorrentSearch",
@@ -508,8 +508,6 @@
         "name": "title",
         "infohash": "info_hash",
         "size_bytes": "size",
-        "seeders": "seeders",
-        "leechers": "leechers",
         "first_seen": "pubDate",
         "description_url": {
           "from": "link"
