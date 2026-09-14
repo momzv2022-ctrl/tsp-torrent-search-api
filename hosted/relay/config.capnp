@@ -31,6 +31,9 @@ const relay :Workers.Worker = (
     (name = "TSP_SHOW_KEY", text = "0"),
     # scrape.py, next door: the Worker's /api/v1/scrape hands it the hashes.
     (name = "TSP_SCRAPE_LOCAL", text = "http://127.0.0.1:8788/scrape"),
+    # Headers an index wants from this address, an API key say, as JSON in
+    # /etc/tsp-relay.env: TSP_INDEX_HEADERS={"bitsearch":{"x-api-key":"..."}}
+    (name = "TSP_INDEX_HEADERS", fromEnvironment = "TSP_INDEX_HEADERS"),
   ],
   globalOutbound = "internet",
 );

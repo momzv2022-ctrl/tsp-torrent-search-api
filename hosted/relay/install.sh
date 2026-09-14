@@ -20,6 +20,9 @@ DIR=/opt/tsp-relay
 [ -f /etc/tsp-relay.env ] || { echo "write /etc/tsp-relay.env first: TSP_APIKEY=<the front's TSP_RELAY_KEY>" >&2; exit 1; }
 grep -q '^TSP_APIKEY=.\{16,\}' /etc/tsp-relay.env || { echo "/etc/tsp-relay.env needs a TSP_APIKEY= line with a real key" >&2; exit 1; }
 chmod 600 /etc/tsp-relay.env
+# The Worker reads TSP_INDEX_HEADERS from the environment, and workerd wants the
+# variable to exist; an empty object is "no index needs anything from here".
+grep -q '^TSP_INDEX_HEADERS=' /etc/tsp-relay.env || echo 'TSP_INDEX_HEADERS={}' >> /etc/tsp-relay.env
 
 command -v node >/dev/null 2>&1 || { curl -fsSL https://deb.nodesource.com/setup_22.x | bash - && apt-get install -y nodejs; }
 

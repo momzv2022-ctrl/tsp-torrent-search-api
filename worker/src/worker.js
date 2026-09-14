@@ -114,6 +114,16 @@ function settings(env = {}) {
     scrapeUrl: text("TSP_SCRAPE_URL"),
     scrapeTop: number("TSP_SCRAPE_TOP", 100),
     scrapeLocal: text("TSP_SCRAPE_LOCAL"),
+    // Headers one index needs from this deployment and the catalogue must not
+    // carry, such as an API key: {"bitsearch": {"x-api-key": "..."}}.
+    indexHeaders: (() => {
+      try {
+        const parsed = JSON.parse(text("TSP_INDEX_HEADERS", "{}"));
+        return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : {};
+      } catch {
+        return {};
+      }
+    })(),
     nsfw: !off("TSP_NSFW"),
     browse: !off("TSP_BROWSE"),
     limit: number("TSP_LIMIT", 100),
@@ -475,6 +485,7 @@ function descriptorProblem(entry) {
   }
 
   if (entry.rows !== undefined && typeof entry.rows !== "string") return "rows must be a string";
+  if (entry.cache_s !== undefined && !(Number.isFinite(entry.cache_s) && entry.cache_s >= 0)) return "cache_s must be a number of seconds";
   if (entry.kind === "html" && !entry.rows) return "html indexes must say where the rows are";
 
   const fields = entry.fields;
@@ -1162,6 +1173,7 @@ function buildRequest(descriptor, origin, query, settings) {
     accept: descriptor.kind === "json" ? "application/json, */*" : descriptor.kind === "rss" ? "application/rss+xml, application/xml, text/xml, */*" : "text/html, */*",
     "accept-language": "en-US,en;q=0.9",
     ...(request.headers || {}),
+    ...(settings.indexHeaders?.[descriptor.id] || {}),
   };
 
   const method = (request.method || "GET").toUpperCase();
@@ -1231,8 +1243,44 @@ function matchesQuery(descriptor, row, query) {
   return fold(query).split(" ").filter(Boolean).every((term) => name.includes(term));
 }
 
+/**
+ * An index that meters its callers says so in its headers, and is believed.
+ *
+ * bitsearch answers 200 requests a day to an address that sends no key and
+ * 1,000 to one that does, then refuses until midnight UTC; measured
+ * 2026-09-14, when a relay that asked it on every fresh search had spent
+ * the day's 200 by two in the morning and every search after that carried
+ * "answered 500" with no explanation. So `x-ratelimit-remaining` and
+ * `x-ratelimit-reset` are read off every answer, and an index down to its
+ * last few is left alone until the reset it named, with the reason in
+ * `failures` where a person can read it. Remembered per isolate, which is
+ * best effort and enough: the next isolate learns the same thing from its
+ * first answer.
+ */
+const quotas = new Map();
+const QUOTA_RESERVE = 10;
+
+function noteQuota(id, response) {
+  const remaining = Number(response.headers.get("x-ratelimit-remaining"));
+  if (!response.headers.has("x-ratelimit-remaining") || !Number.isFinite(remaining)) return null;
+  const limit = response.headers.get("x-ratelimit-limit") || "?";
+  const reset = response.headers.get("x-ratelimit-reset") || "";
+  const resetMs = Date.parse(reset);
+  if (remaining > QUOTA_RESERVE && response.status !== 429) return null;
+  const until = Number.isFinite(resetMs) && resetMs > Date.now() ? resetMs : Date.now() + 15 * 60 * 1000;
+  const note = `quota: ${remaining} of ${limit} requests left${reset ? ` until ${reset}` : ""}; not asked again before then`;
+  quotas.set(id, { until, note });
+  return note;
+}
+
 async function askIndex(descriptor, query, settings, nowMs) {
   const problems = [];
+
+  const held = quotas.get(descriptor.id);
+  if (held) {
+    if (held.until > Date.now()) return { id: descriptor.id, rows: [], origin: null, problems: [held.note] };
+    quotas.delete(descriptor.id);
+  }
 
   // One clock for the index, not one per origin. The setting is documented
   // as the wait for one index, and a search is as slow as its slowest index:
@@ -1252,10 +1300,13 @@ async function askIndex(descriptor, query, settings, nowMs) {
     try {
       const { url, init } = buildRequest(descriptor, origin, query, settings);
       const response = await fetch(url, { ...init, signal: control.signal, redirect: "follow" });
+      const quota = noteQuota(descriptor.id, response);
       if (!response.ok) {
-        problems.push(`${new URL(origin).host} answered ${response.status}`);
+        problems.push(quota || `${new URL(origin).host} answered ${response.status}`);
+        if (quota) break;
         continue;
       }
+      if (quota) problems.push(quota);
       const body = await response.text();
       const rows = rowsFrom(descriptor.kind, body, descriptor.rows)
         .slice(0, settings.limit)
@@ -1411,6 +1462,37 @@ async function askRelay(descriptor, query, settings) {
   }
 }
 
+/**
+ * One index's answer, kept for `cache_s` seconds if its descriptor asks.
+ *
+ * The merged answer is cached ten minutes; that is for speed. This is for
+ * budget: an index that meters its callers is asked once per query per
+ * `cache_s`, however many times the query comes back, so its daily allowance
+ * goes on questions nobody has asked yet. Only an answer counts, a failure
+ * is asked again next time; and only a custom domain has a working cache.
+ */
+async function askCached(index, terms, settings, nowMs) {
+  const ask = () => (viaRelay(index, settings) ? askRelay(index, terms, settings) : askIndex(index, terms, settings, nowMs));
+  const cache = index.cache_s > 0 ? globalThis.caches?.default : null;
+  if (!cache) return ask();
+  const key = `https://cache.tsp.invalid/v1/index?${new URLSearchParams({ id: index.id, q: terms, limit: String(settings.limit) })}`;
+  try {
+    const held = await cache.match(key);
+    if (held) return { ...(await held.json()), cached: true };
+  } catch {
+    // no cache here
+  }
+  const answer = await ask();
+  if (answer.origin) {
+    try {
+      await cache.put(key, new Response(JSON.stringify(answer), { headers: { "content-type": "application/json", "cache-control": `public, max-age=${index.cache_s}` } })).catch(() => {});
+    } catch {
+      // nor here
+    }
+  }
+  return answer;
+}
+
 /** Ask every chosen index at once. What comes back is what the cache keeps: merged rows, and who answered. */
 async function gather(query, catalogue, settings, nowMs) {
   const indexes = chosen(catalogue, settings).filter((index) => !query.indexers || query.indexers.has(index.id));
@@ -1422,9 +1504,7 @@ async function gather(query, catalogue, settings, nowMs) {
   if (!query.terms && !browsing) return { rows: [], engines: [], failures: {}, browsing: "", scrapedAt };
 
   const terms = browsing || query.terms;
-  const answers = await Promise.all(
-    indexes.map((index) => (viaRelay(index, settings) ? askRelay(index, terms, settings) : askIndex(index, terms, settings, nowMs))),
-  );
+  const answers = await Promise.all(indexes.map((index) => askCached(index, terms, settings, nowMs)));
 
   const failures = {};
   for (const one of answers) {
@@ -1843,4 +1923,5 @@ export const __testing = {
   resetFeedMemo: () => {
     feedMemo = { at: 0, catalogue: null, meta: null };
   },
+  resetQuotas: () => quotas.clear(),
 };

@@ -978,3 +978,89 @@ test("more than fifty rows to measure go out as batches, together", async () => 
   assert.equal(body.torrents[0].measured, true);
   assert.equal(body.torrents.at(-1).name, "Row 2", "and the top three are settled by claim after that");
 });
+
+// --- a metered index -----------------------------------------------------------
+
+const { resetQuotas } = __testing;
+
+test("an index that says it is nearly out of requests is left alone until the reset it named", async () => {
+  resetQuotas();
+  const reset = new Date(Date.now() + 3600_000).toISOString();
+  let calls = 0;
+  globalThis.fetch = async (url) => {
+    const address = String(url);
+    if (address.includes("feed.json")) return new Response(catalogueFeed());
+    if (address.includes("bitsearch.eu")) {
+      calls += 1;
+      return new Response(JSON.stringify({ results: [{ title: "Thing", infohash: "a".repeat(40), size: 1, seeders: 5, leechers: 1 }] }), {
+        headers: { "x-ratelimit-limit": "200", "x-ratelimit-remaining": calls === 1 ? "7" : "6", "x-ratelimit-reset": reset },
+      });
+    }
+    return new Response("no", { status: 404 });
+  };
+  const env = { TSP_INDEXES: "bitsearch" };
+  const first = await (await call("/api/v1/search?q=thing", env)).json();
+  assert.equal(first.count, 1, "the answer that carried the warning is still used");
+  assert.equal(first.failures, undefined, "an index that answered is not a failure");
+  const second = await (await call("/api/v1/search?q=other", env)).json();
+  assert.equal(calls, 1, "the next search does not ask");
+  assert.deepEqual(second.engines, []);
+  assert.match(second.failures.bitsearch[0], /quota: 7 of 200/);
+  resetQuotas();
+  await call("/api/v1/search?q=again", env);
+  assert.equal(calls, 2, "after the reset it is asked again");
+  resetQuotas();
+});
+
+test("a refusal that names the quota is reported as the quota, not as a status", async () => {
+  resetQuotas();
+  stubFetch({ "feed.json": { body: catalogueFeed() } });
+  const real = globalThis.fetch;
+  globalThis.fetch = async (url, init) => {
+    if (String(url).includes("bitsearch.eu")) return new Response("", { status: 429, headers: { "x-ratelimit-limit": "200", "x-ratelimit-remaining": "0" } });
+    return real(url, init);
+  };
+  const body = await (await call("/api/v1/search?q=thing", { TSP_INDEXES: "bitsearch" })).json();
+  assert.match(body.failures.bitsearch[0], /^quota: 0 of 200 requests left; not asked again before then$/);
+  resetQuotas();
+});
+
+test("TSP_INDEX_HEADERS sends one index a header the catalogue must not carry", async () => {
+  resetQuotas();
+  const asked = stubFetch({ "feed.json": { body: catalogueFeed() }, "bitsearch.eu": { body: JSON.stringify({ results: [] }) }, "apibay.org": { body: fixture("piratebay.json") } });
+  await call("/api/v1/search?q=thing", { TSP_INDEXES: "bitsearch,piratebay", TSP_INDEX_HEADERS: JSON.stringify({ bitsearch: { "x-api-key": "k-1" } }) });
+  const bits = asked.find((one) => one.url.includes("bitsearch.eu"));
+  const bay = asked.find((one) => one.url.includes("apibay.org"));
+  assert.equal(bits.init.headers["x-api-key"], "k-1");
+  assert.equal(bay.init.headers["x-api-key"], undefined, "and nobody else");
+  await call("/api/v1/search?q=thing", { TSP_INDEXES: "bitsearch", TSP_INDEX_HEADERS: "not json" });
+  assert.equal(asked.filter((one) => one.url.includes("bitsearch.eu")).length, 2, "a setting that does not parse is an empty one");
+});
+
+test("an index with cache_s is asked once per query per that long, and a failure is not kept", async () => {
+  resetQuotas();
+  stubCache();
+  try {
+    const feed = JSON.parse(catalogueFeed());
+    feed.indexes = feed.indexes.map((one) => (one.id === "piratebay" ? { ...one, cache_s: 3600 } : one));
+    let status = 200;
+    const asked = stubFetch({ "feed.json": { body: JSON.stringify(feed) } });
+    const real = globalThis.fetch;
+    globalThis.fetch = async (url, init) => (String(url).startsWith("https://apibay.org") ? (asked.push({ url: String(url), init }), new Response(status === 200 ? fixture("piratebay.json") : "", { status })) : real(url, init));
+    const bay = () => asked.filter((one) => one.url.startsWith("https://apibay.org")).length;
+    const env = { TSP_INDEXES: "piratebay", TSP_CACHE: "0" };
+
+    status = 503;
+    assert.equal((await (await call("/api/v1/search?q=ubuntu", env)).json()).engines.length, 0);
+    assert.equal(bay(), 1);
+    status = 200;
+    assert.ok((await (await call("/api/v1/search?q=ubuntu", env)).json()).count > 0, "a failure was not kept, so it is asked again");
+    assert.equal(bay(), 2);
+    assert.ok((await (await call("/api/v1/search?q=ubuntu", env)).json()).count > 0);
+    assert.equal(bay(), 2, "and an answer is kept: the third search asked nobody");
+    await call("/api/v1/search?q=debian", env);
+    assert.equal(bay(), 3, "another query is another question");
+  } finally {
+    delete globalThis.caches;
+  }
+});

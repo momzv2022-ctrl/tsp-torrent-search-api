@@ -138,6 +138,7 @@ api.tspsearch.dev is.
 | `TSP_RELAY_ONLY` | `1` on that other copy: it answers `/api/v1/relay`, `/api/v1/scrape` and `/api/v1/health` behind its `TSP_APIKEY`, and nothing else, not even its page |
 | `TSP_SCRAPE_URL`, `TSP_SCRAPE_TOP` | a relay's `/api/v1/scrape`, asked about the top 100 rows of every fresh search, in batches of fifty at once: claimed seeder counts are replaced by what public trackers report, those rows are marked `measured`, and the list is sorted again |
 | `TSP_SCRAPE_LOCAL` | on the relay, the scrape service beside it, `hosted/relay/scrape.py` on loopback |
+| `TSP_INDEX_HEADERS` | headers one index wants from this deployment and the catalogue must not carry, as JSON: `{"bitsearch":{"x-api-key":"..."}}`. Set it on whichever deployment asks that index, the relay if the index goes through it |
 
 Whether a site answers is a fact about the address asking. A few refuse
 Cloudflare's addresses and answer an ordinary server, so the hosted deployment
@@ -147,6 +148,13 @@ open and its address is never public. `TSP_ALSO` turns those indexes on at the
 front, since the catalogue has them off for everyone else. A merged answer is
 cached for `TSP_CACHE` seconds, so the relay sees only what nobody asked in
 the last ten minutes.
+
+An index that meters its callers, bitsearch at 200 requests a day to an
+address without a key and 1,000 with one, says so in its answer headers, and is
+believed: down to its last ten, it is left alone until the reset it named, and
+`failures` says so in words. A descriptor may set `cache_s`, and that index's
+answer to a query is then kept for that long at the front, so a metered
+allowance goes on questions nobody has asked yet.
 
 No index can be trusted for seeder counts: one invents them, another reports
 the count from the day it first saw a torrent and never again, and either wins

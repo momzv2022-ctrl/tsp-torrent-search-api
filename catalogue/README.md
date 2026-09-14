@@ -67,6 +67,10 @@ A field is a path, a list of paths tried in order, or an object:
 In JSON, a row produced by a `[]` step can reach the object it came out of as
 `^`: `"^.title_long"` is how a YTS torrent finds the film's name.
 
+A descriptor may also carry `cache_s`, a number of seconds: a deployment on a
+custom domain then keeps that index's answer to a query for that long, which
+is how an index with a daily allowance is asked once per question.
+
 The fields you may fill: `name`, `infohash`, `magnet`, `size_bytes`, `seeders`,
 `leechers`, `files`, `category`, `first_seen`, `description_url`, `torrent_url`.
 `name` is required, and so is one of `infohash` or `magnet`, a row that cannot
