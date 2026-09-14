@@ -958,3 +958,23 @@ test("the operator's search is always fresh, and refreshes the copy everyone els
     delete globalThis.caches;
   }
 });
+
+test("more than fifty rows to measure go out as batches, together", async () => {
+  const rows = Array.from({ length: 120 }, (_, i) => {
+    const hash = i.toString(16).padStart(40, "0");
+    return { name: `Row ${i}`, infohash: hash, magnet: `magnet:?xt=urn:btih:${hash}`, seeders: 1000 - i, indexer: "piratebay" };
+  });
+  const asked = stubFetch({
+    "feed.json": { body: catalogueFeed() },
+    "relay.example/api/v1/relay": { body: JSON.stringify({ id: "piratebay", origin: "https://apibay.org", problems: [], rows }) },
+    "relay.example/api/v1/scrape": { body: JSON.stringify({ swarms: { [rows[0].infohash]: { seeders: 0, leechers: 0, answered: 3 }, [rows[99].infohash]: { seeders: 5000, leechers: 1, answered: 3 } } }) },
+  });
+  const env = { TSP_RELAY_URL: "https://relay.example", TSP_RELAY_KEY: "rk", TSP_RELAY_INDEXES: "piratebay", TSP_INDEXES: "piratebay", TSP_SCRAPE_URL: "https://relay.example/api/v1/scrape" };
+  const body = await (await call("/api/v1/search?q=row&limit=3", env)).json();
+  const scrapes = asked.filter((one) => one.url.includes("/api/v1/scrape"));
+  assert.equal(scrapes.length, 2, "a hundred hashes, two requests");
+  assert.equal(scrapes.map((one) => decodeURIComponent(one.url).split("h=")[1].split(",").length).join("+"), "50+50");
+  assert.equal(body.torrents[0].name, "Row 99", "the hundredth row, measured at 5000, leads");
+  assert.equal(body.torrents[0].measured, true);
+  assert.equal(body.torrents.at(-1).name, "Row 2", "and the top three are settled by claim after that");
+});

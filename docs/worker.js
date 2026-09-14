@@ -69,7 +69,7 @@ const BAKED_CATALOGUE = [{"id":"animetosho","upstream":"animetosho","name":"Anim
  * identical across three code fixes and answered the question wrongly. The
  * source's own hash moves when and only when the source does.
  */
-const BUILD = "fb95ce533acf";
+const BUILD = "9347969bc2d2";
 
 /** Everything the Worker reads from the environment, resolved once per request. */
 function settings(env = {}) {
@@ -112,7 +112,7 @@ function settings(env = {}) {
     // Swarm measurement: where to ask (a relay's /api/v1/scrape), how many of
     // the top rows to ask about, and on a relay, the loopback service it asks.
     scrapeUrl: text("TSP_SCRAPE_URL"),
-    scrapeTop: number("TSP_SCRAPE_TOP", 50),
+    scrapeTop: number("TSP_SCRAPE_TOP", 100),
     scrapeLocal: text("TSP_SCRAPE_LOCAL"),
     nsfw: !off("TSP_NSFW"),
     browse: !off("TSP_BROWSE"),
@@ -1320,20 +1320,29 @@ const bySwarm = (a, b) => (b.seeders ?? -1) - (a.seeders ?? -1) || (b.size_bytes
  * count are re-counted before anyone sees them: claimed numbers are replaced
  * by measured ones, the row is marked `measured`, and the list is sorted
  * again. Rows the trackers never reached keep their claim. Only the top is
- * asked about because that is where an inflated number does its damage.
+ * asked about because that is where an inflated number does its damage, and
+ * a hundred rather than fifty because when the first fifty are all inflated,
+ * the genuine tier under them is the one that needs the numbers. The scrape
+ * service takes fifty hashes a request, so the batches go out together.
  */
+const SCRAPE_BATCH = 50;
+
 async function measureSwarms(rows, settings) {
   const top = rows.slice(0, settings.scrapeTop);
   if (!top.length) return { rows, measured: 0 };
-  const url = new URL(settings.scrapeUrl);
-  url.searchParams.set("h", top.map((row) => row.infohash).join(","));
   const control = new AbortController();
   const timer = setTimeout(() => control.abort(), 6000);
-  try {
+  const batch = async (some) => {
+    const url = new URL(settings.scrapeUrl);
+    url.searchParams.set("h", some.map((row) => row.infohash).join(","));
     const response = await fetch(url, { headers: { "x-api-key": settings.relayKey, accept: "application/json" }, signal: control.signal });
-    if (!response.ok) return { rows, measured: 0, problem: `scrape answered ${response.status}` };
-    const got = await response.json();
-    const swarms = got.swarms || {};
+    if (!response.ok) throw new Error(`scrape answered ${response.status}`);
+    return (await response.json()).swarms || {};
+  };
+  try {
+    const batches = [];
+    for (let at = 0; at < top.length; at += SCRAPE_BATCH) batches.push(batch(top.slice(at, at + SCRAPE_BATCH)));
+    const swarms = Object.assign({}, ...(await Promise.all(batches)));
     let measured = 0;
     for (const row of top) {
       const swarm = swarms[row.infohash];
@@ -1345,7 +1354,8 @@ async function measureSwarms(rows, settings) {
     }
     return { rows: [...rows].sort(bySwarm), measured };
   } catch (error) {
-    return { rows, measured: 0, problem: `scrape: ${error.name === "AbortError" ? "timed out" : String(error.message || error).slice(0, 120)}` };
+    const why = error.name === "AbortError" ? "scrape: timed out" : /^scrape answered/.test(error.message) ? error.message : `scrape: ${String(error.message || error).slice(0, 120)}`;
+    return { rows, measured: 0, problem: why };
   } finally {
     clearTimeout(timer);
   }

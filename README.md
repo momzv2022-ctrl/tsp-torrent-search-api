@@ -136,7 +136,7 @@ api.tspsearch.dev is.
 | `TSP_RATE_SEARCH`, `TSP_RATE_KEYS` | rate-limit bindings, declared in wrangler config rather than set as text: searches per key and per address, keys minted per address. Unbound, nothing is limited |
 | `TSP_RELAY_URL`, `TSP_RELAY_KEY`, `TSP_RELAY_INDEXES` | send these indexes (ids, or `*`) to another copy of this file standing at an address those sites answer, and merge what it says as if this Worker had asked |
 | `TSP_RELAY_ONLY` | `1` on that other copy: it answers `/api/v1/relay`, `/api/v1/scrape` and `/api/v1/health` behind its `TSP_APIKEY`, and nothing else, not even its page |
-| `TSP_SCRAPE_URL`, `TSP_SCRAPE_TOP` | a relay's `/api/v1/scrape`, asked about the top 50 rows of every fresh search: claimed seeder counts are replaced by what public trackers report, those rows are marked `measured`, and the list is sorted again |
+| `TSP_SCRAPE_URL`, `TSP_SCRAPE_TOP` | a relay's `/api/v1/scrape`, asked about the top 100 rows of every fresh search, in batches of fifty at once: claimed seeder counts are replaced by what public trackers report, those rows are marked `measured`, and the list is sorted again |
 | `TSP_SCRAPE_LOCAL` | on the relay, the scrape service beside it, `hosted/relay/scrape.py` on loopback |
 
 Whether a site answers is a fact about the address asking. A few refuse
