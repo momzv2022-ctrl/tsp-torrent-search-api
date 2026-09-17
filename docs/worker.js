@@ -69,7 +69,7 @@ const BAKED_CATALOGUE = [{"id":"animetosho","upstream":"animetosho","name":"Anim
  * identical across three code fixes and answered the question wrongly. The
  * source's own hash moves when and only when the source does.
  */
-const BUILD = "4a47dc454ffa";
+const BUILD = "8a2635735448";
 
 /** Everything the Worker reads from the environment, resolved once per request. */
 function settings(env = {}) {
@@ -1475,7 +1475,8 @@ function doubtClaims(rows) {
  * The trackers themselves are not believed as one either. The service hands
  * back every tracker's report, and `judgeSwarm` takes the largest count among
  * the reports no bot planted; a service older than that hands back one count
- * per swarm, and that is taken as it comes. A row whose numbers were all
+ * per swarm, and that is judged as a single report, with the completions the
+ * index kept, if it kept any, to answer for it. A row whose numbers were all
  * planted comes out `suspect`, at zero, with what it advertised kept in
  * `claimed_seeders`.
  */
@@ -1501,7 +1502,11 @@ async function measureSwarms(rows, settings) {
     for (const row of top) {
       const swarm = swarms[row.infohash];
       if (!swarm) continue;
-      const judged = Array.isArray(swarm.reports) ? judgeSwarm(swarm.reports) : swarm;
+      const judged = Array.isArray(swarm.reports)
+        ? judgeSwarm(swarm.reports)
+        : swarm.answered > 0
+          ? judgeSwarm([{ seeders: swarm.seeders, leechers: swarm.leechers, completed: row.completed }])
+          : { answered: 0 };
       if (!(judged.answered > 0)) continue;
       const claim = row.seeders > 0 ? row.seeders : 0;
       row.seeders = judged.seeders;

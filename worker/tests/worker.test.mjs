@@ -1181,3 +1181,25 @@ test("the completed count of an index that keeps one comes through, and is judge
   assert.equal(bunny.completed, 9120, "knaben's grabs, from the row with more seeders");
   assert.equal(bunny.suspect, undefined);
 });
+
+test("a scrape service that still answers one count per swarm has that count judged as one report", async () => {
+  const hash = (c) => c.repeat(40);
+  const claimed = [
+    { name: "Planted, index counted five downloads", infohash: hash("a"), magnet: `magnet:?xt=urn:btih:${hash("a")}`, seeders: 64821, leechers: 43182, completed: 5, indexer: "piratebay" },
+    { name: "Real", infohash: hash("b"), magnet: `magnet:?xt=urn:btih:${hash("b")}`, seeders: 1423, leechers: 34, completed: 109277, indexer: "piratebay" },
+  ];
+  stubFetch({
+    "feed.json": { body: catalogueFeed() },
+    "relay.example/api/v1/relay": { body: JSON.stringify({ id: "piratebay", origin: "https://apibay.org", problems: [], rows: claimed }) },
+    "relay.example/api/v1/scrape": { body: JSON.stringify({ swarms: { [hash("a")]: { seeders: 94838, leechers: 63073, answered: 5 }, [hash("b")]: { seeders: 1895, leechers: 42, answered: 5 } }, trackers: 5 }) },
+  });
+  const env = { TSP_RELAY_URL: "https://relay.example", TSP_RELAY_KEY: "rk", TSP_RELAY_INDEXES: "piratebay", TSP_INDEXES: "piratebay", TSP_SCRAPE_URL: "https://relay.example/api/v1/scrape" };
+  const body = await (await call("/api/v1/search?q=thing", env)).json();
+  assert.deepEqual(
+    body.torrents.map((t) => [t.name, t.seeders, t.measured ?? false, t.suspect ?? false, t.claimed_seeders]),
+    [
+      ["Real", 1895, true, false, undefined],
+      ["Planted, index counted five downloads", 0, true, true, 94838],
+    ],
+  );
+});
