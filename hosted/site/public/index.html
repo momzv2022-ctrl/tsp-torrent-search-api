@@ -150,7 +150,6 @@
         <span class="box wait" id="key" aria-live="polite">making you a key…</span>
         <button type="button" data-copy="key" id="copykey" disabled>Copy Index Key</button>
       </div>
-      <p class="note">Keys are made on request and stored nowhere. Each one is good for 30 searches a minute. <a href="#" id="newkey">New key</a></p>
 
       <p class="step later">3. Paste both in Oriole settings page</p>
       <p class="step">Tap Save and test.</p>
@@ -375,7 +374,6 @@ for (const button of document.querySelectorAll("[data-copy]")) {
     copy(button, node.textContent, label, node);
   };
 }
-el("newkey").onclick = (event) => { event.preventDefault(); mint(); };
 el("copycurl").onclick = () => {
   const command = `curl -s "https://api.tspsearch.dev/api/v1/search?q=ubuntu&limit=3" -H "X-Api-Key: ${key || "YOUR-KEY"}"`;
   copy(el("copycurl"), command, "Copy", el("curl"));
