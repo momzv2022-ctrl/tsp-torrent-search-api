@@ -45,6 +45,7 @@
     "size_bytes": "bytes",
     "seeders": "seeders",
     "leechers": "peers",
+    "completed": "grabs",
     "first_seen": "date",
     "description_url": "details",
     "category": {

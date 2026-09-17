@@ -1064,3 +1064,120 @@ test("an index with cache_s is asked once per query per that long, and a failure
     delete globalThis.caches;
   }
 });
+
+// --- planted swarms -------------------------------------------------------------
+
+const { inflated, judgeSwarm, doubtClaims } = __testing;
+
+test("a tracker report wears the bot's shape, or does not", () => {
+  // the loudest Photoshop on opentrackr, 2026-09-17: two leechers to three seeders, 72 completions
+  assert.equal(inflated({ seeders: 94838, leechers: 63073, completed: 72 }), true);
+  // the same bot on a tracker that never counts completions
+  assert.equal(inflated({ seeders: 39413, leechers: 26276, completed: null }), true);
+  // a real Photoshop crack: 1895 seeders, 42 leechers, 40 completions on the tracker's counter
+  assert.equal(inflated({ seeders: 1895, leechers: 42, completed: 40 }), false);
+  // Special Ops Lioness S03E03: exactly 1.50 on one tracker, and 10,382 completions to answer for it
+  assert.equal(inflated({ seeders: 114, leechers: 76, completed: 10382 }), false);
+  // a fresh episode at 1.488 the day after it aired, kept by its completions
+  assert.equal(inflated({ seeders: 2225, leechers: 1495, completed: 23561 }), false);
+  // the same numbers with no completions known are the bot's shape and nothing to answer for it
+  assert.equal(inflated({ seeders: 2225, leechers: 1495 }), true);
+  // a small planted copy that drifted off the ratio, but zero completions at 299 seeders
+  assert.equal(inflated({ seeders: 299, leechers: 203, completed: 0 }), true);
+  // under two hundred seeders the completions say nothing, and 1.41 is not the shape
+  assert.equal(inflated({ seeders: 116, leechers: 82, completed: 0 }), false);
+  // a swarm of five is never judged on its ratio
+  assert.equal(inflated({ seeders: 3, leechers: 2 }), false);
+  assert.equal(inflated({ seeders: 0, leechers: 0, completed: 0 }), false);
+  assert.equal(inflated({}), false);
+});
+
+test("a swarm is the largest count the honest trackers gave, and suspect when the planted number was the story", () => {
+  const otr = (seeders, leechers, completed) => ({ tracker: "tracker.opentrackr.org", seeders, leechers, completed });
+  const stl = (seeders, leechers, completed) => ({ tracker: "open.stealth.si", seeders, leechers, completed });
+  const dmn = (seeders, leechers) => ({ tracker: "open.demonii.com", seeders, leechers, completed: null });
+  const exo = (seeders, leechers, completed) => ({ tracker: "exodus.desync.com", seeders, leechers, completed });
+
+  // Adobe Photoshop for Mac 2024, as four trackers reported it
+  assert.deepEqual(judgeSwarm([otr(94838, 63073, 72), stl(14, 0, 67), dmn(10, 1), exo(4, 2, 10)]), { seeders: 14, leechers: 2, answered: 4, suspect: true, claimed: 94838 });
+  // Premiere Pro v25.4.1, planted on every tracker that answered
+  assert.deepEqual(judgeSwarm([otr(83461, 55618, 3), stl(51203, 34135, 0), exo(29125, 19417, 1)]), { seeders: 0, leechers: 0, answered: 3, suspect: true, claimed: 83461 });
+  // Photoshop 2023 by TheWindowsForum, a real swarm the trackers roughly agree on
+  assert.deepEqual(judgeSwarm([otr(1895, 42, 40), stl(1869, 33, 25), dmn(206, 3), exo(649, 17, 16)]), { seeders: 1895, leechers: 42, answered: 4, suspect: false, claimed: 0 });
+  // Oppenheimer, with demonii at 1.50 by coincidence and no completions to show: that report is set aside, the swarm stands
+  assert.deepEqual(judgeSwarm([otr(946, 209, 36), stl(1042, 184, 95), dmn(210, 140), exo(313, 35, 12)]), { seeders: 1042, leechers: 209, answered: 4, suspect: false, claimed: 210 });
+  // a swarm nobody knows is measured, at zero, and not suspect
+  assert.deepEqual(judgeSwarm([otr(0, 0, 0), stl(0, 0, 0)]), { seeders: 0, leechers: 0, answered: 2, suspect: false, claimed: 0 });
+  assert.deepEqual(judgeSwarm([]), { seeders: 0, leechers: 0, answered: 0, suspect: false, claimed: 0 });
+});
+
+test("a claim the trackers never checked is judged by its shape, and set aside rather than dropped", () => {
+  const rows = [
+    { name: "Wave of 2021", seeders: 2331, leechers: 1555, completed: 5 },
+    { name: "Same shape, no count", seeders: 900, leechers: 600 },
+    { name: "Same shape, answered for", seeders: 2331, leechers: 1555, completed: 109277 },
+    { name: "Real", seeders: 1913, leechers: 48, completed: 109277 },
+    { name: "Already measured", seeders: 300, leechers: 200, measured: true },
+    { name: "Unknown", size_bytes: 5 },
+  ];
+  const judged = doubtClaims(rows);
+  assert.deepEqual(
+    judged.map((row) => [row.name, row.seeders, row.suspect ?? false, row.claimed_seeders]),
+    [
+      ["Same shape, answered for", 2331, false, undefined],
+      ["Real", 1913, false, undefined],
+      ["Already measured", 300, false, undefined],
+      ["Wave of 2021", 0, true, 2331],
+      ["Same shape, no count", 0, true, 900],
+      ["Unknown", undefined, false, undefined],
+    ],
+    "the planted claims go to the bottom at zero with their claim beside them; a measured row is not judged twice; a row with no count still comes last",
+  );
+});
+
+test("the trackers' own reports are judged one by one, and a planted swarm comes out suspect, at what the honest trackers saw", async () => {
+  const hash = (c) => c.repeat(40);
+  const claimed = [
+    { name: "Photoshop 2026 (New) (Verified)", infohash: hash("a"), magnet: `magnet:?xt=urn:btih:${hash("a")}`, seeders: 64821, leechers: 43182, completed: 5, indexer: "piratebay" },
+    { name: "Photoshop 2023 [TheWindowsForum]", infohash: hash("b"), magnet: `magnet:?xt=urn:btih:${hash("b")}`, seeders: 1423, leechers: 34, completed: 109277, indexer: "piratebay" },
+    { name: "Nobody knows", infohash: hash("c"), magnet: `magnet:?xt=urn:btih:${hash("c")}`, seeders: 3, leechers: 1, indexer: "piratebay" },
+  ];
+  const report = (tracker, seeders, leechers, completed) => ({ tracker, seeders, leechers, completed });
+  const swarms = {
+    [hash("a")]: {
+      reports: [report("tracker.opentrackr.org", 94838, 63073, 72), report("open.stealth.si", 14, 0, 67), report("open.demonii.com", 10, 1, null)],
+      seeders: 94838,
+      leechers: 63073,
+      answered: 3,
+    },
+    [hash("b")]: { reports: [report("tracker.opentrackr.org", 1895, 42, 40), report("open.demonii.com", 206, 3, null)], seeders: 1895, leechers: 42, answered: 2 },
+  };
+  stubFetch({
+    "feed.json": { body: catalogueFeed() },
+    "relay.example/api/v1/relay": { body: JSON.stringify({ id: "piratebay", origin: "https://apibay.org", problems: [], rows: claimed }) },
+    "relay.example/api/v1/scrape": { body: JSON.stringify({ swarms, trackers: 5 }) },
+  });
+  const env = { TSP_RELAY_URL: "https://relay.example", TSP_RELAY_KEY: "rk", TSP_RELAY_INDEXES: "piratebay", TSP_INDEXES: "piratebay", TSP_SCRAPE_URL: "https://relay.example/api/v1/scrape" };
+  const body = await (await call("/api/v1/search?q=photoshop", env)).json();
+  assert.deepEqual(
+    body.torrents.map((t) => [t.name, t.seeders, t.leechers, t.measured ?? false, t.suspect ?? false, t.claimed_seeders, t.completed]),
+    [
+      ["Photoshop 2023 [TheWindowsForum]", 1895, 42, true, false, undefined, 109277],
+      ["Photoshop 2026 (New) (Verified)", 14, 1, true, true, 94838, 5],
+      ["Nobody knows", 3, 1, false, false, undefined, undefined],
+    ],
+    "the planted swarm falls to what the honest trackers saw, says so, and keeps the largest number it advertised",
+  );
+  const dropped = await (await call("/api/v1/search?q=photoshop&suspect=drop", env)).json();
+  assert.deepEqual(dropped.torrents.map((t) => t.name), ["Photoshop 2023 [TheWindowsForum]", "Nobody knows"], "suspect=drop leaves the planted row out");
+  assert.equal(dropped.count, 2);
+});
+
+test("the completed count of an index that keeps one comes through, and is judged", async () => {
+  stubFetch({ "feed.json": { body: catalogueFeed() }, "api.knaben.org": { body: fixture("knaben.json") }, "torrents-csv.com": { body: fixture("torrentscsv.json") } });
+  const body = await (await call("/api/v1/search?q=big+buck+bunny&indexers=knaben,torrentscsv")).json();
+  const bunny = body.torrents.find((t) => t.infohash === "dd8255ecdc7ca55fb0bbf81323d87062db1f6d1c");
+  assert.ok(bunny, "the shared row is there");
+  assert.equal(bunny.completed, 9120, "knaben's grabs, from the row with more seeders");
+  assert.equal(bunny.suspect, undefined);
+});

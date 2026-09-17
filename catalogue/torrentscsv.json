@@ -27,6 +27,7 @@
     "size_bytes": "size_bytes",
     "seeders": "seeders",
     "leechers": "leechers",
+    "completed": "completed",
     "first_seen": "created_unix"
   }
 }

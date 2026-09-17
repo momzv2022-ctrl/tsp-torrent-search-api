@@ -72,11 +72,19 @@ custom domain then keeps that index's answer to a query for that long, which
 is how an index with a daily allowance is asked once per question.
 
 The fields you may fill: `name`, `infohash`, `magnet`, `size_bytes`, `seeders`,
-`leechers`, `files`, `category`, `first_seen`, `description_url`, `torrent_url`.
-`name` is required, and so is one of `infohash` or `magnet`, a row that cannot
-be turned into a magnet link is not a result. Everything else is optional, and
-sizes, dates and counts are read in whatever shape the site prints them
-(`1.5 GiB`, `2 days ago`, `Jan 5, 2024`, epoch seconds).
+`leechers`, `completed`, `files`, `category`, `first_seen`, `description_url`,
+`torrent_url`. `name` is required, and so is one of `infohash` or `magnet`, a
+row that cannot be turned into a magnet link is not a result. Everything else
+is optional, and sizes, dates and counts are read in whatever shape the site
+prints them (`1.5 GiB`, `2 days ago`, `Jan 5, 2024`, epoch seconds).
+
+`completed` is the site's count of finished downloads over the life of the
+torrent, knaben's `grabs`, torrents-csv's `completed`. The Worker holds a
+claim of thousands of seeders against it: a swarm that size with no downloads
+behind it was planted by a bot, and the row is set aside as `suspect`. So map
+it only where the site counts for life. A counter that resets, or a site that
+prints 0 for everything as bitsearch's `downloads` does, would condemn every
+row it touched.
 
 `category` must be one of `video`, `audio`, `software`, `archive`, `document`,
 `image`, `other`. A site with exactly one entry in `categories` fills it in for

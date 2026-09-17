@@ -9,13 +9,22 @@ loopback; the relay Worker in front of it holds the key and the tunnel.
     GET /scrape?h=<infohash>,<infohash>,...      up to 50 per request
     GET /healthz
 
-    {"swarms": {"<infohash>": {"seeders": 1, "leechers": 1, "answered": 4}},
+    {"swarms": {"<infohash>": {
+         "reports": [{"tracker": "tracker.opentrackr.org", "seeders": 1, "leechers": 1, "completed": 40}],
+         "seeders": 1, "leechers": 1, "answered": 4}},
      "trackers": 5, "took_ms": 812}
 
-`seeders` and `leechers` are the largest any tracker reported; `answered` is
-how many trackers replied at all, so a swarm nobody knows reads 0/0 with
-`answered` above zero, and a scrape that reached no tracker is left out.
-Results are kept for TTL seconds per hash. No dependencies beyond Python 3.
+Every tracker that answered gets a report of its own, because the trackers
+disagree and the disagreement is the point: an announce bot registers tens of
+thousands of peers for a torrent on one or two of them, and the largest number
+is the one it planted. The Worker judges the reports. `completed` is the
+tracker's own count of finished downloads, which the bot never adds to, or
+null on a tracker that has never reported one here (open.demonii.com says 0
+for everything). `seeders` and `leechers` are still the largest any tracker
+gave, for a Worker older than the reports. `answered` is how many trackers
+replied at all, so a swarm nobody knows reads 0/0 with `answered` above zero,
+and a scrape that reached no tracker is left out. Results are kept for TTL
+seconds per hash. No dependencies beyond Python 3.
 """
 import json
 import os
@@ -45,6 +54,11 @@ cache = {}
 cache_lock = threading.Lock()
 resolved = {}
 resolved_lock = threading.Lock()
+# Trackers that have ever reported a finished download here. One that has not
+# (open.demonii.com answers 0 for every torrent) is not saying "nobody ever
+# finished", it is saying nothing, and its zeros go out as null.
+counts_completions = set()
+counts_lock = threading.Lock()
 
 
 def address(host, port):
@@ -60,7 +74,7 @@ def address(host, port):
 
 
 def scrape_one(host, port, hashes):
-    """One tracker's answer for these hashes: {hash: (seeders, leechers)}, or None."""
+    """One tracker's answer for these hashes: {hash: (seeders, completed, leechers)}, or None."""
     try:
         addr = address(host, port)
     except OSError:
@@ -82,8 +96,7 @@ def scrape_one(host, port, hashes):
             return None
         out = {}
         for i, h in enumerate(hashes):
-            seeders, _completed, leechers = struct.unpack(">III", data[8 + 12 * i : 20 + 12 * i])
-            out[h] = (seeders, leechers)
+            out[h] = struct.unpack(">III", data[8 + 12 * i : 20 + 12 * i])
         return out
     except (OSError, struct.error):
         return None
@@ -92,7 +105,7 @@ def scrape_one(host, port, hashes):
 
 
 def measure(hashes):
-    """Every tracker at once, the largest count wins, and the answer is kept."""
+    """Every tracker at once, each report kept, and the answer remembered."""
     now = time.time()
     swarms = {}
     todo = []
@@ -105,13 +118,27 @@ def measure(hashes):
                 todo.append(h)
     if todo:
         with ThreadPoolExecutor(max_workers=len(TRACKERS)) as pool:
-            answers = [one for one in pool.map(lambda t: scrape_one(t[0], t[1], todo), TRACKERS) if one]
+            answers = [(host, one) for host, one in pool.map(lambda t: (t[0], scrape_one(t[0], t[1], todo)), TRACKERS) if one]
+        with counts_lock:
+            for host, one in answers:
+                if any(completed > 0 for _, completed, _ in one.values()):
+                    counts_completions.add(host)
+            counting = set(counts_completions)
         for h in todo:
-            reports = [one[h] for one in answers if h in one]
+            reports = []
+            for host, one in answers:
+                if h not in one:
+                    continue
+                seeders, completed, leechers = one[h]
+                reports.append({"tracker": host, "seeders": seeders, "leechers": leechers, "completed": completed if host in counting else None})
             if not reports:
                 continue  # no tracker reached: say nothing rather than 0
-            swarm = {"seeders": max(r[0] for r in reports), "leechers": max(r[1] for r in reports), "answered": len(reports)}
-            swarms[h] = swarm
+            swarms[h] = {
+                "reports": reports,
+                "seeders": max(r["seeders"] for r in reports),
+                "leechers": max(r["leechers"] for r in reports),
+                "answered": len(reports),
+            }
         with cache_lock:
             for h in todo:
                 if h in swarms:
@@ -123,7 +150,7 @@ def measure(hashes):
 
 
 class Handler(BaseHTTPRequestHandler):
-    server_version = "tsp-scrape/1"
+    server_version = "tsp-scrape/2"
 
     def log_message(self, *_):
         pass
@@ -139,7 +166,7 @@ class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
         url = urlparse(self.path)
         if url.path == "/healthz":
-            return self.send_json(200, {"ok": True, "trackers": len(TRACKERS), "cached": len(cache)})
+            return self.send_json(200, {"ok": True, "trackers": len(TRACKERS), "cached": len(cache), "counting": sorted(counts_completions)})
         if url.path != "/scrape":
             return self.send_json(404, {"error": "not found"})
         raw = parse_qs(url.query).get("h", [""])[0].lower()

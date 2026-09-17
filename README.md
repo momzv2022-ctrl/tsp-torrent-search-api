@@ -54,6 +54,7 @@ GET /api/v1/search?q=ubuntu&apikey=…
 | `limit`, `offset` | page through the merged rows (default 50) |
 | `cat` | `video`, `audio`, `software`, `archive`, `document`, `image`, `other` |
 | `min_seeders` | drop anything under |
+| `suspect` | `drop` to leave out rows whose swarm a bot planted; by default they stay, at the bottom, marked |
 | `indexers` | ask only these, by id |
 
 The key goes in `?apikey=`, `X-Api-Key:` or `Authorization: Bearer`.
@@ -136,7 +137,7 @@ api.tspsearch.dev is.
 | `TSP_RATE_SEARCH`, `TSP_RATE_KEYS` | rate-limit bindings, declared in wrangler config rather than set as text: searches per key and per address, keys minted per address. Unbound, nothing is limited |
 | `TSP_RELAY_URL`, `TSP_RELAY_KEY`, `TSP_RELAY_INDEXES` | send these indexes (ids, or `*`) to another copy of this file standing at an address those sites answer, and merge what it says as if this Worker had asked |
 | `TSP_RELAY_ONLY` | `1` on that other copy: it answers `/api/v1/relay`, `/api/v1/scrape` and `/api/v1/health` behind its `TSP_APIKEY`, and nothing else, not even its page |
-| `TSP_SCRAPE_URL`, `TSP_SCRAPE_TOP` | a relay's `/api/v1/scrape`, asked about the top 100 rows of every fresh search, in batches of fifty at once: claimed seeder counts are replaced by what public trackers report, those rows are marked `measured`, and the list is sorted again |
+| `TSP_SCRAPE_URL`, `TSP_SCRAPE_TOP` | a relay's `/api/v1/scrape`, asked about the top 100 rows of every fresh search, in batches of fifty at once: claimed seeder counts are replaced by what public trackers report, each tracker's report judged on its own, those rows are marked `measured`, and the list is sorted again |
 | `TSP_SCRAPE_LOCAL` | on the relay, the scrape service beside it, `hosted/relay/scrape.py` on loopback |
 | `TSP_INDEX_HEADERS` | headers one index wants from this deployment and the catalogue must not carry, as JSON: `{"bitsearch":{"x-api-key":"..."}}`. Set it on whichever deployment asks that index, the relay if the index goes through it |
 
@@ -163,6 +164,24 @@ scrape service that asks public trackers directly, and the front re-counts the
 top rows of every fresh search through it before anyone sees them. A row that
 was re-counted says `"measured": true`; a row the trackers never reached keeps
 what the index claimed.
+
+Nor can the trackers be trusted as one. The rows that top every software
+search, 60,000 seeders for a Photoshop or an Office crack, are registered on
+public trackers by a bot announcing peers that do not exist, and the largest
+count across trackers is exactly the number it planted. Measured 2026-09-17:
+of 200 peers a tracker handed out for the loudest Photoshop, none spoke
+BitTorrent. The bot has a shape, two leechers for every three seeders and no
+finished downloads to its name, so the scrape service hands back every
+tracker's report, the front judges each on its own, and a swarm's count is
+the largest among the reports no bot planted. A row whose numbers were all
+planted comes out at zero, at the bottom of the list, with `"suspect": true`
+and what it advertised in `claimed_seeders`. The same judgement is applied to
+the claims of rows the trackers never reached, and to every row of a
+deployment with no scrape. Nothing is deleted, since a real swarm can wear the
+shape by coincidence, and `suspect=drop` on the request is how a client that
+would rather not see them says so. Where an index keeps a lifetime count of
+finished downloads it comes through as `completed`, and counts against the
+claim.
 
 [`hosted/wrangler.jsonc`](hosted/wrangler.jsonc) is the front's configuration:
 its route, its limits, its settings, and the three secrets it wants.

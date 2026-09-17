@@ -381,6 +381,7 @@ const TARGETS = {
   size_bytes: "bytes",
   seeders: "count",
   leechers: "count",
+  completed: "count",
   files: "count",
   category: "category",
   first_seen: "date",
@@ -1345,7 +1346,7 @@ function merge(answers) {
       if ((row.seeders ?? -1) > (seen.seeders ?? -1)) {
         Object.assign(seen, row, { indexers: seen.indexers });
       }
-      for (const field of ["size_bytes", "files", "category", "first_seen", "description_url", "torrent_url"]) {
+      for (const field of ["size_bytes", "files", "completed", "category", "first_seen", "description_url", "torrent_url"]) {
         if (seen[field] === undefined && row[field] !== undefined) seen[field] = row[field];
       }
     }
@@ -1358,6 +1359,101 @@ function merge(answers) {
 
 /** Most seeders first; a row with no count at all comes last, behind a measured zero. */
 const bySwarm = (a, b) => (b.seeders ?? -1) - (a.seeders ?? -1) || (b.size_bytes ?? 0) - (a.size_bytes ?? 0);
+
+/**
+ * Whether a swarm count is the work of an announce bot.
+ *
+ * Measured 2026-09-17 across forty queries: the rows that top every software
+ * search, 60,000 to 96,000 seeders for a Photoshop or an Office crack, are
+ * registered on public trackers by a bot announcing peers that do not exist.
+ * Of 200 peers one tracker handed out for the loudest Photoshop, none spoke
+ * BitTorrent. The bot has a shape. It announces two leechers for every three
+ * seeders, so seeders over leechers is 1.50 within 1.5% on every tracker it
+ * has poisoned, at any size above a few hundred; a real swarm sits there by
+ * coincidence about once in a hundred tracker reports, and was never seen
+ * there on two trackers at once. And it never finishes a download: a
+ * tracker's own count of completed downloads, which the scrape carries and
+ * used to throw away, reads 0 to 497 against tens of thousands of seeders.
+ * On 2,350 tracker reports of real swarms with two hundred seeders or more,
+ * completions never fell under 1.2% of the seeders; on 190 planted reports
+ * they were under 0.5% in all but a handful, and those wore the ratio. So a
+ * report is planted when its completions are under half a percent of its
+ * seeders, or when it wears the ratio and cannot show completions to answer
+ * for it. The ratio is only ever taken within one report: the largest
+ * seeders over the largest leechers from different trackers is a ratio
+ * nobody reported, and it put a real episode at 1.488 the day after it
+ * aired. A report with completions enough is trusted whatever its ratio,
+ * which is what keeps that episode in the list when one tracker happens to
+ * say 1.50. A count with no completions known, an index's claim or a tracker
+ * that never counts, is judged on the ratio alone.
+ */
+const BOT_RATIO = 1.5;
+const BOT_RATIO_TOLERANCE = 0.015;
+const BOT_MIN_LEECHERS = 20;
+const BOT_MAX_COMPLETED = 500;
+const COMPLETIONS_MIN_SEEDERS = 200;
+const COMPLETIONS_FRACTION = 0.005;
+
+function inflated({ seeders, leechers, completed }) {
+  if (!(seeders > 0)) return false;
+  const counted = Number.isFinite(completed);
+  if (counted && seeders >= COMPLETIONS_MIN_SEEDERS && completed < seeders * COMPLETIONS_FRACTION) return true;
+  if (!(leechers >= BOT_MIN_LEECHERS)) return false;
+  if (counted && completed >= BOT_MAX_COMPLETED) return false;
+  return Math.abs(seeders / leechers - BOT_RATIO) <= BOT_RATIO * BOT_RATIO_TOLERANCE;
+}
+
+/**
+ * One swarm out of its tracker reports: the largest count among the reports
+ * that were not planted, and whether the planted ones were the whole story.
+ * A swarm every tracker gives as 0/0 is measured, at zero. A swarm whose only
+ * large numbers were planted is `suspect`, and `claimed` keeps the largest of
+ * them, so the row can say what it advertised. One planted-looking report
+ * beside honest ones of the same order is the coincidence, not the bot; the
+ * planted number has to dwarf what the honest trackers saw.
+ */
+const DWARFS = 10;
+
+function judgeSwarm(reports) {
+  const honest = reports.filter((report) => !inflated(report));
+  const planted = reports.filter((report) => inflated(report));
+  const most = (list, field) => list.reduce((top, report) => Math.max(top, report[field] > 0 ? report[field] : 0), 0);
+  const seeders = most(honest, "seeders");
+  const claimed = most(planted, "seeders");
+  return {
+    seeders,
+    leechers: most(honest, "leechers"),
+    answered: reports.length,
+    suspect: planted.length > 0 && (honest.length === 0 || claimed > seeders * DWARFS),
+    claimed,
+  };
+}
+
+/**
+ * The claims the trackers did not check, judged by their own shape.
+ *
+ * Rows past the measured top, and every row of a deployment with no scrape,
+ * carry what the index said. An index's number usually comes from one
+ * tracker's scrape, so the bot's shape survives in it: knaben's copy of the
+ * 2021 Pirate Bay spam wave reads 2331 seeders and 1555 leechers, and where
+ * the index counts downloads, `completed`, it reads five. A claim that wears
+ * the shape is set aside: the row stays in the list at zero, says `suspect`,
+ * and what it advertised moves to `claimed_seeders`. Nothing is deleted,
+ * because a real swarm can wear the shape by coincidence, and a row at the
+ * bottom of the list with its claim beside it is a smaller wrong than a
+ * missing one.
+ */
+function doubtClaims(rows) {
+  for (const row of rows) {
+    if (row.measured || row.suspect) continue;
+    if (!inflated({ seeders: row.seeders, leechers: row.leechers, completed: row.completed })) continue;
+    row.suspect = true;
+    row.claimed_seeders = row.seeders;
+    row.seeders = 0;
+    row.leechers = 0;
+  }
+  return [...rows].sort(bySwarm);
+}
 
 /**
  * Measure the swarms, because no index can be trusted to.
@@ -1375,6 +1471,13 @@ const bySwarm = (a, b) => (b.seeders ?? -1) - (a.seeders ?? -1) || (b.size_bytes
  * a hundred rather than fifty because when the first fifty are all inflated,
  * the genuine tier under them is the one that needs the numbers. The scrape
  * service takes fifty hashes a request, so the batches go out together.
+ *
+ * The trackers themselves are not believed as one either. The service hands
+ * back every tracker's report, and `judgeSwarm` takes the largest count among
+ * the reports no bot planted; a service older than that hands back one count
+ * per swarm, and that is taken as it comes. A row whose numbers were all
+ * planted comes out `suspect`, at zero, with what it advertised kept in
+ * `claimed_seeders`.
  */
 const SCRAPE_BATCH = 50;
 
@@ -1397,10 +1500,17 @@ async function measureSwarms(rows, settings) {
     let measured = 0;
     for (const row of top) {
       const swarm = swarms[row.infohash];
-      if (!swarm || !(swarm.answered > 0)) continue;
-      row.seeders = swarm.seeders;
-      row.leechers = swarm.leechers;
+      if (!swarm) continue;
+      const judged = Array.isArray(swarm.reports) ? judgeSwarm(swarm.reports) : swarm;
+      if (!(judged.answered > 0)) continue;
+      const claim = row.seeders > 0 ? row.seeders : 0;
+      row.seeders = judged.seeders;
+      row.leechers = judged.leechers;
       row.measured = true;
+      if (judged.suspect) {
+        row.suspect = true;
+        row.claimed_seeders = Math.max(judged.claimed, claim);
+      }
       measured += 1;
     }
     return { rows: [...rows].sort(bySwarm), measured };
@@ -1415,10 +1525,14 @@ async function measureSwarms(rows, settings) {
 /** A TSP torrent object, out of a merged row. */
 function toTorrent(row, scrapedAt) {
   const torrent = { magnet: row.magnet, infohash: row.infohash, name: row.name };
-  for (const field of ["size_bytes", "files", "category", "seeders", "leechers", "first_seen"]) {
+  for (const field of ["size_bytes", "files", "category", "seeders", "leechers", "completed", "first_seen"]) {
     if (row[field] !== undefined) torrent[field] = row[field];
   }
   torrent.scraped_at = scrapedAt;
+  if (row.suspect) {
+    torrent.suspect = true;
+    torrent.claimed_seeders = row.claimed_seeders;
+  }
   if (row.torrent_url) torrent.torrent_url = row.torrent_url;
   if (row.description_url) torrent.description_url = row.description_url;
   if (row.indexers?.length) torrent.sources = [...row.indexers].sort();
@@ -1516,6 +1630,7 @@ async function gather(query, catalogue, settings, nowMs) {
     rows = checked.rows;
     if (checked.problem) failures.scrape = [checked.problem];
   }
+  rows = doubtClaims(rows);
   return { rows, engines: answers.filter((one) => one.origin).map((one) => one.id), failures, browsing, scrapedAt };
 }
 
@@ -1524,6 +1639,7 @@ function answer(query, gathered, started) {
   let rows = gathered.rows;
   if (query.cat) rows = rows.filter((row) => row.category === query.cat);
   if (query.minSeeders) rows = rows.filter((row) => (row.seeders ?? 0) >= query.minSeeders);
+  if (query.suspect === "drop") rows = rows.filter((row) => !row.suspect);
 
   const body = {
     query: query.q,
@@ -1639,6 +1755,7 @@ function readQuery(url, settings) {
     limit: whole(url.searchParams.get("limit"), 50, settings.limit),
     offset: whole(url.searchParams.get("offset"), 0, 10_000),
     minSeeders: whole(url.searchParams.get("min_seeders"), 0, 1e6),
+    suspect: url.searchParams.get("suspect") === "drop" ? "drop" : "",
     indexers: indexers.length ? new Set(indexers) : null,
   };
 }
@@ -1900,6 +2017,9 @@ export const __testing = {
   classifyName,
   coerce,
   descriptorProblem,
+  doubtClaims,
+  inflated,
+  judgeSwarm,
   keyMatches,
   loadFeed,
   merge,
