@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Oriole: Torrent Streamer</title>
 <meta name="description" content="Browse torrents, stream them, watch them on the TV. Oriole is free on Google Play; this page hands you the search server it needs.">
-<meta property="og:title" content="Introducing Oriole">
+<meta property="og:title" content="Oriole: Torrent Streamer">
 <meta property="og:description" content="Browse torrents, stream it, watch it on the TV. Free on Google Play, no ads, full privacy.">
 <meta property="og:image" content="https://tspsearch.dev/og.jpg">
 <meta property="og:url" content="https://tspsearch.dev/">
@@ -15,7 +15,7 @@
 <link rel="icon" href="/favicon.png" type="image/png">
 <link rel="stylesheet" href="https://use.typekit.net/ycw8uux.css">
 <style>
-  :root { --gold:#e9c433; --ink:#f2f2f2; --dim:#9c9c9c; --line:#2a2a2a; --box:#0c0c0c; }
+  :root { --gold:#eace00; --ink:#f2f2f2; --dim:#9c9c9c; --line:#2a2a2a; --box:#0c0c0c; }
   * { box-sizing:border-box; }
   html, body { margin:0; background:#000; color:var(--ink); }
   body { font:16px/1.55 "clother","Helvetica Neue",Helvetica,Arial,sans-serif; font-weight:400; min-height:100vh; -webkit-font-smoothing:antialiased; }
@@ -25,21 +25,23 @@
   a { color:inherit; }
 
   /* The wordmark */
-  .hero { width:fit-content; max-width:100%; margin:0 auto 4.5rem; }
+  /* Everything in the wordmark is sized from --n, the name's font size, so the
+     overlap of "Introducing" and the gap to the tagline hold at every width. */
+  .hero { --n:clamp(5.4rem,30vw,11.5rem); width:calc(50% + 1.5rem); min-width:fit-content; max-width:100%; margin:0 0 4.5rem -1.5rem; }
   .hero h1 { margin:0; font-weight:400; line-height:1; }
-  .hero .intro { display:block; font-size:clamp(1.7rem,5.5vw,3.2rem); color:#fff; text-align:center; padding-left:38%; margin-bottom:-.28em; position:relative; z-index:1; }
-  .hero .name { display:block; font-size:clamp(5.4rem,30vw,11.5rem); color:var(--gold); line-height:.95; text-align:center; }
-  .hero .tag { margin:.5rem 0 0; text-align:right; font-size:clamp(.95rem,2.4vw,1.15rem); color:#fff; }
+  .hero .intro { display:block; font-size:calc(var(--n) * .235); line-height:1; color:#fff; text-align:left; padding-left:29%; margin-bottom:calc(var(--n) * -.2); position:relative; z-index:1; }
+  .hero .name { display:block; font-size:var(--n); line-height:1; color:var(--gold); text-align:center; }
+  .hero .tag { margin:calc(var(--n) * -.27) 0 0; text-align:right; font-size:max(13px, calc(var(--n) * .075)); line-height:1.3; color:#fff; position:relative; }
 
   /* Two columns: the steps, a rule, the features */
   .cols { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:4rem; align-items:start; }
   .features-col { position:relative; padding-left:3rem; align-self:center; }
   .rule { position:absolute; left:0; top:-1.75rem; bottom:-1.75rem; width:22px; display:flex; flex-direction:column; align-items:center; }
-  .rule i { flex:1; width:1px; background:#fff; }
+  .rule i { flex:1; width:2px; background:#756700; margin:4px 0; }
   .rule svg { width:22px; height:22px; flex:none; }
   .rule svg:last-child { transform:scaleY(-1); }
   .orn { fill:#fff; }
-  .orn path { fill:none; stroke:#fff; stroke-width:1.4; }
+  .orn path { fill:none; stroke:#fff; stroke-width:1.2; }
 
   h2 { font-weight:400; }
   h2.big { font-size:clamp(1.7rem,4vw,2.2rem); margin:0 0 1.25rem; color:#fff; line-height:1.15; }
@@ -65,14 +67,14 @@
   button:disabled:hover { background:#000; color:var(--gold); }
   a.btn svg { width:18px; height:18px; fill:none; stroke:currentColor; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
   .note { font-size:.85rem; color:var(--dim); margin:.5rem 0 0; }
-  .shot { display:block; width:100%; max-width:330px; height:auto; border:1px solid var(--gold); margin-top:1rem; }
+  .shot { display:block; width:100%; max-width:320px; height:auto; margin-top:1rem; }
 
   ul.features { list-style:none; margin:0 0 1.75rem; padding:0; }
-  ul.features li { position:relative; padding-left:1.6rem; margin:.5rem 0; font-size:1.05rem; color:#fff; }
-  ul.features li::before { content:""; position:absolute; left:.15rem; top:.5em; width:.5rem; height:.25rem; border-left:1.5px solid #fff; border-bottom:1.5px solid #fff; transform:rotate(-45deg); }
+  ul.features li { position:relative; padding-left:1.6rem; margin:.3rem 0; font-size:1.05rem; line-height:1.35; color:#fff; }
+  ul.features li::before { content:""; position:absolute; left:.15rem; top:.45em; width:.5rem; height:.25rem; border-left:1.5px solid #fff; border-bottom:1.5px solid #fff; transform:rotate(-45deg); }
   .badges { display:flex; gap:.75rem; flex-wrap:wrap; }
-  a.badge { display:inline-flex; align-items:center; gap:.45rem; height:32px; padding:0 .8rem; background:#fff; color:#000; text-decoration:none; font-size:.9rem; transition:background .15s; }
-  a.badge svg { width:16px; height:16px; fill:currentColor; }
+  a.badge { display:inline-flex; align-items:center; gap:.4rem; height:24px; padding:0 .6rem; background:#fff; color:#000; text-decoration:none; font-size:.78rem; transition:background .15s; }
+  a.badge svg { width:13px; height:13px; fill:currentColor; }
   a.badge:hover { background:var(--gold); }
 
   /* Details, and the rest */
@@ -86,11 +88,11 @@
   .term .bar { display:flex; align-items:center; gap:.4rem; padding:.55rem .8rem; background:#141414; border-bottom:1px solid var(--line); }
   .term .bar i { width:11px; height:11px; border-radius:50%; display:inline-block; }
   .term .bar i:nth-child(1) { background:#ef4444; } .term .bar i:nth-child(2) { background:#f59e0b; } .term .bar i:nth-child(3) { background:#22c55e; }
-  .term .bar span { margin-left:auto; font-size:12px; color:#6b7280; }
+  .term .bar span { margin-left:auto; font-size:12px; color:#8b93a1; }
   .term .bar button { font-size:12px; padding:.15rem .6rem; }
   .term pre { margin:0; padding:.9rem 1rem 1rem; font:13px/1.55 ui-monospace,SFMono-Regular,Menlo,monospace; overflow-x:auto; white-space:pre; }
   .term .p { color:#22c55e; user-select:none; }
-  .term .c { color:#6b7280; }
+  .term .c { color:#8b93a1; }
   .term .k { color:var(--gold); }
   code { font:.9em ui-monospace,SFMono-Regular,Menlo,monospace; color:#fff; }
 
@@ -105,10 +107,11 @@
 
   @media (max-width:820px) {
     main { padding-top:2.5rem; }
-    .hero { margin-bottom:3.75rem; }
+    .hero { width:fit-content; margin:0 auto 3.75rem; }
     .cols { grid-template-columns:minmax(0,1fr); gap:3.5rem; }
     .features-col { order:-1; padding-left:2.25rem; align-self:auto; }
     .step { font-size:1rem; }
+    ul.features li { font-size:.95rem; }
   }
   @media (max-width:520px) {
     .field button { width:auto; }
@@ -141,21 +144,21 @@
         <button type="button" data-copy="url">Copy Index URL</button>
       </div>
       <div class="field">
-        <span class="box wait" id="key">making you a key…</span>
+        <span class="box wait" id="key" aria-live="polite">making you a key…</span>
         <button type="button" data-copy="key" id="copykey" disabled>Copy Index Key</button>
       </div>
       <p class="note">Keys are made on request and stored nowhere. Each one is good for 30 searches a minute. <a href="#" id="newkey">New key</a></p>
 
       <p class="step later">3. Paste both in Oriole settings page</p>
       <p class="step">Tap Save and test.</p>
-      <img class="shot" src="/oriole-settings.png" width="330" height="450" alt="Oriole's Settings screen: the Index URL field filled with https://api.tspsearch.dev, the Index key field below it, and the Save and test button">
+      <img class="shot" src="/oriole-settings.png" width="316" height="428" alt="Oriole's Settings screen: the Index URL field filled with https://api.tspsearch.dev, the Index key field below it, and the Save and test button">
     </section>
 
     <section class="features-col" aria-labelledby="features">
       <div class="rule" aria-hidden="true">
-        <svg class="orn" viewBox="0 0 24 24"><circle cx="12" cy="4" r="2.2"/><circle cx="5" cy="12" r="2.2"/><circle cx="19" cy="12" r="2.2"/><path d="M12 6v14M5 12c3 0 5 2 7 4 2-2 4-4 7-4"/></svg>
+        <svg class="orn" viewBox="0 0 24 24"><circle cx="12" cy="4" r="2.2"/><circle cx="5" cy="16" r="2.2"/><circle cx="19" cy="16" r="2.2"/><path d="M12 4 5 16h14z"/></svg>
         <i></i>
-        <svg class="orn" viewBox="0 0 24 24"><circle cx="12" cy="4" r="2.2"/><circle cx="5" cy="12" r="2.2"/><circle cx="19" cy="12" r="2.2"/><path d="M12 6v14M5 12c3 0 5 2 7 4 2-2 4-4 7-4"/></svg>
+        <svg class="orn" viewBox="0 0 24 24"><circle cx="12" cy="4" r="2.2"/><circle cx="5" cy="16" r="2.2"/><circle cx="19" cy="16" r="2.2"/><path d="M12 4 5 16h14z"/></svg>
       </div>
       <h2 class="script" id="features">Features</h2>
       <ul class="features">
@@ -236,7 +239,19 @@ const QUERIES = ["ubuntu", "big buck bunny", "one piece"];
 const el = (id) => document.getElementById(id);
 let key = "";
 
+function show() {
+  el("key").textContent = key;
+  el("key").classList.remove("wait");
+  el("curlkey").textContent = key;
+  for (const one of document.querySelectorAll(".curlkey2")) one.textContent = key;
+  el("copykey").textContent = "Copy Index Key";
+  el("copykey").disabled = false;
+}
+
+// A key, then the site list and the benchmarks, on load and on every re-mint.
+// A failed re-mint keeps the key the visitor already had: keys stay valid.
 async function mint() {
+  const previous = key;
   el("key").textContent = "making you a key…";
   el("key").classList.add("wait");
   el("copykey").textContent = "Copy Index Key";
@@ -246,16 +261,20 @@ async function mint() {
     const got = await response.json();
     if (!response.ok || !got.apikey) throw new Error(got.error || `the API answered ${response.status}`);
     key = got.apikey;
-    el("key").textContent = key;
-    el("curlkey").textContent = key;
-    for (const one of document.querySelectorAll(".curlkey2")) one.textContent = key;
-    el("key").classList.remove("wait");
-    el("copykey").disabled = false;
+    show();
+    sites();
+    bench();
   } catch (error) {
-    key = "";
-    el("key").textContent = /too many/i.test(String(error.message)) ? "too many keys from your address; try again in a minute" : `no key: ${error.message}`;
-    el("copykey").textContent = "Try again";
-    el("copykey").disabled = false;
+    const why = /too many/i.test(String(error.message)) ? "too many keys from your address; try again in a minute" : `no key: ${error.message}`;
+    el("key").textContent = why;
+    if (previous) {
+      key = previous;
+      setTimeout(() => { if (key === previous) show(); }, 3000);
+    } else {
+      key = "";
+      el("copykey").textContent = "Try again";
+      el("copykey").disabled = false;
+    }
   }
   return key;
 }
@@ -263,20 +282,26 @@ async function mint() {
 async function sites() {
   if (!key) return;
   try {
-    const got = await (await fetch(`${API}/api/v1/indexers?apikey=${encodeURIComponent(key)}`)).json();
+    const response = await fetch(`${API}/api/v1/indexers?apikey=${encodeURIComponent(key)}`);
+    const got = await response.json();
+    if (!response.ok) throw new Error(got.error || `answered ${response.status}`);
     const on = (got.indexers || []).filter((one) => one.enabled).map((one) => one.name);
-    if (on.length) el("sites").textContent = on.join(", ");
+    el("sites").textContent = on.length ? on.join(", ") : "no index is enabled right now";
   } catch {
     el("sites").textContent = "the list could not be loaded";
   }
 }
 
+// Each run has a number; a run that has been overtaken stops writing rows.
+let benchRun = 0;
 async function bench() {
   if (!key) return;
+  const run = ++benchRun;
   el("rerun").disabled = true;
   const body = el("bench");
   body.innerHTML = "";
   for (const q of QUERIES) {
+    if (run !== benchRun) return;
     const row = body.insertRow();
     row.innerHTML = `<td>${q}</td><td class="n dim" colspan="4">searching…</td>`;
     try {
@@ -284,70 +309,78 @@ async function bench() {
       const response = await fetch(`${API}/api/v1/search?q=${encodeURIComponent(q)}&limit=1&apikey=${encodeURIComponent(key)}`);
       const took = Math.round(performance.now() - started);
       const got = await response.json();
+      if (run !== benchRun) return;
       if (!response.ok) throw new Error(got.error || `answered ${response.status}`);
       const total = (got.engines || []).length + Object.keys(got.failures || {}).length;
       const cache = response.headers.get("x-tsp-cache") === "hit" ? "hit" : "fresh";
       row.innerHTML = `<td>${q}</td><td class="n">${got.count}</td><td class="n">${(got.engines || []).length} of ${total}</td><td class="n">${took} ms</td><td class="dim">${cache}</td>`;
     } catch (error) {
+      if (run !== benchRun) return;
       row.innerHTML = `<td>${q}</td><td class="dim" colspan="4">${String(error.message).replace(/[<>&]/g, "")}</td>`;
     }
   }
   el("rerun").disabled = false;
 }
 
-// The plugin file, with this page's URL and the visitor's key written in.
+// The plugin file, with this page's URL and the visitor's key written in. If
+// the template cannot be fetched, the plain file is offered instead.
 async function plugin(event) {
   event.preventDefault();
   if (!key && !(await mint())) return;
-  const template = await (await fetch("/tsp.py")).text();
-  const blob = new Blob([template.replace("__TSP_URL__", API).replace("__TSP_KEY__", key)], { type: "text/x-python" });
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(blob);
-  a.download = "tsp.py";
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  setTimeout(() => URL.revokeObjectURL(a.href), 10_000);
+  try {
+    const response = await fetch("/tsp.py");
+    if (!response.ok) throw new Error(`answered ${response.status}`);
+    const template = await response.text();
+    const blob = new Blob([template.replaceAll("__TSP_URL__", API).replaceAll("__TSP_KEY__", key)], { type: "text/x-python" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "tsp.py";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 10_000);
+  } catch {
+    location.href = "/tsp.py";
+  }
+}
+
+function select(node) {
+  const range = document.createRange();
+  range.selectNodeContents(node);
+  getSelection().removeAllRanges();
+  getSelection().addRange(range);
+}
+
+// Copy buttons say "Copied" for a moment, then their own label again.
+async function copy(button, text, label, node) {
+  try {
+    await navigator.clipboard.writeText(text);
+    button.textContent = "Copied";
+    setTimeout(() => { button.textContent = label; }, 1200);
+  } catch {
+    select(node);
+    button.textContent = "Selected, copy it";
+    setTimeout(() => { button.textContent = label; }, 2500);
+  }
 }
 
 for (const button of document.querySelectorAll("[data-copy]")) {
-  button.onclick = async () => {
+  const label = button.textContent;
+  button.onclick = () => {
     if (button.id === "copykey" && !key) { mint(); return; }
-    const text = el(button.dataset.copy).textContent;
-    try {
-      await navigator.clipboard.writeText(text);
-      const was = button.textContent;
-      button.textContent = "Copied";
-      setTimeout(() => { button.textContent = was; }, 1200);
-    } catch {
-      const range = document.createRange();
-      range.selectNodeContents(el(button.dataset.copy));
-      getSelection().removeAllRanges();
-      getSelection().addRange(range);
-    }
+    const node = el(button.dataset.copy);
+    copy(button, node.textContent, label, node);
   };
 }
-el("newkey").onclick = async (event) => { event.preventDefault(); if (await mint()) bench(); };
-el("copycurl").onclick = async () => {
+el("newkey").onclick = (event) => { event.preventDefault(); mint(); };
+el("copycurl").onclick = () => {
   const command = `curl -s "https://api.tspsearch.dev/api/v1/search?q=ubuntu&limit=3" -H "X-Api-Key: ${key || "YOUR-KEY"}"`;
-  const button = el("copycurl");
-  try {
-    await navigator.clipboard.writeText(command);
-    button.textContent = "Copied";
-    setTimeout(() => { button.textContent = "Copy"; }, 1200);
-  } catch {
-    button.textContent = "Select and copy";
-  }
+  copy(el("copycurl"), command, "Copy", el("curl"));
 };
-el("rerun").onclick = bench;
+el("rerun").onclick = () => bench();
 el("plugin").onclick = plugin;
 
-(async () => {
-  if (await mint()) {
-    sites();
-    bench();
-  }
-})();
+mint();
 
 // --- the wind ---------------------------------------------------------------------
 //
@@ -358,8 +391,8 @@ el("plugin").onclick = plugin;
 // passing through reads as a ripple crossing the grid. The field is sampled
 // on a coarse grid and interpolated to the dots, and the dots are written
 // straight into a pixel buffer, which is what keeps tens of thousands of them
-// cheap. On black the dots are faint white at rest and turn gold, and
-// brighter, where a gust is passing.
+// cheap. On black the dots are faint white at rest and turn gold where a
+// gust is passing, at the same tenth of opacity.
 
 (() => {
   const canvas = el("wind");
@@ -369,11 +402,11 @@ el("plugin").onclick = plugin;
   const COARSE = 40;
   const MOST = 40000;
   const REST = [255, 255, 255];
-  const GUST = [233, 196, 51];
+  const GUST = [234, 206, 0];
   const ALPHA_REST = 26;   // a tenth
-  const ALPHA_GUST = 120;  // near half, at the heart of a gust
+  const ALPHA_GUST = 26;   // and a tenth in a gust too, only gold
   const gusts = [];
-  let W = 0, H = 0, dpr = 1, pitch = PITCH;
+  let W = 0, H = 0, pitch = PITCH, frame = 0;
   let cols = 0, rows = 0, dx, dy, ss;
   let ccols = 0, crows = 0, cvx, cvy;
   let image, pixels;
@@ -412,16 +445,21 @@ el("plugin").onclick = plugin;
     );
   }
 
+  // The canvas is drawn at one device pixel per CSS pixel: a 2px dot at a
+  // tenth of opacity gains nothing from a retina buffer four times the size.
+  // A hidden page can report a zero size; then there is nothing to draw and
+  // the buffers wait for the first real resize.
   function size() {
-    dpr = Math.min(devicePixelRatio || 1, 2);
     W = innerWidth; H = innerHeight;
-    canvas.width = Math.round(W * dpr); canvas.height = Math.round(H * dpr);
+    if (!W || !H) { pixels = undefined; return; }
+    if (canvas.width === W && canvas.height === H && pixels) return;
+    canvas.width = W; canvas.height = H;
     pitch = PITCH * Math.max(1, Math.ceil(Math.sqrt((W * H) / (PITCH * PITCH) / MOST)));
     cols = Math.floor(W / pitch) + 1; rows = Math.floor(H / pitch) + 1;
     dx = new Float32Array(cols * rows); dy = new Float32Array(cols * rows); ss = new Float32Array(cols * rows);
     ccols = Math.floor(W / COARSE) + 2; crows = Math.floor(H / COARSE) + 2;
     cvx = new Float32Array(ccols * crows); cvy = new Float32Array(ccols * crows);
-    image = ctx.createImageData(canvas.width, canvas.height);
+    image = ctx.createImageData(W, H);
     pixels = new Uint32Array(image.data.buffer);
   }
   addEventListener("resize", size);
@@ -445,6 +483,7 @@ el("plugin").onclick = plugin;
   const sample = { vx: 0, vy: 0 };
   function step(now) {
     if (!running) return;
+    if (!pixels) { last = now; frame = requestAnimationFrame(step); return; }
     const dt = Math.min((now - last) / 1000, 0.05);
     last = now;
     const t = now / 1000;
@@ -471,8 +510,8 @@ el("plugin").onclick = plugin;
     // The dots: interpolate the field, ease toward it, write the pixels.
     pixels.fill(0);
     const follow = Math.min(1, 5 * dt), settle = Math.min(1, 4 * dt);
-    const side = Math.max(1, Math.round(dpr)) * 2;
-    const cw = canvas.width, ch = canvas.height;
+    const side = 2;
+    const cw = W, ch = H;
     for (let r = 0; r < rows; r += 1) {
       const y = r * pitch;
       const gy = y / COARSE, j = Math.min(gy | 0, crows - 2), fy = gy - j;
@@ -493,7 +532,7 @@ el("plugin").onclick = plugin;
         const blue = (REST[2] + (GUST[2] - REST[2]) * s) | 0;
         const alpha = (ALPHA_REST + (ALPHA_GUST - ALPHA_REST) * s) | 0;
         const color = (alpha << 24) | (blue << 16) | (green << 8) | red;
-        const px = Math.round((x + dx[n]) * dpr) - side / 2, py = Math.round((y + dy[n]) * dpr) - side / 2;
+        const px = Math.round(x + dx[n]) - side / 2, py = Math.round(y + dy[n]) - side / 2;
         for (let yy = 0; yy < side; yy += 1) {
           const row = py + yy;
           if (row < 0 || row >= ch) continue;
@@ -505,14 +544,16 @@ el("plugin").onclick = plugin;
       }
     }
     ctx.putImageData(image, 0, 0);
-    requestAnimationFrame(step);
+    frame = requestAnimationFrame(step);
   }
 
+  // One loop only: the frame queued before the page was hidden is cancelled
+  // before a new one starts.
   document.addEventListener("visibilitychange", () => {
     running = !document.hidden;
-    if (running) { last = performance.now(); requestAnimationFrame(step); }
+    if (running) { last = performance.now(); cancelAnimationFrame(frame); frame = requestAnimationFrame(step); }
   });
-  requestAnimationFrame(step);
+  frame = requestAnimationFrame(step);
 })();
 </script>
 </body>
