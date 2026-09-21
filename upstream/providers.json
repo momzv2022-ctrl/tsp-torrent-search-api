@@ -3,12 +3,12 @@
   "upstream": {
     "repo": "prajwalch/TorrentSearch",
     "url": "https://github.com/prajwalch/TorrentSearch",
-    "commit": "d8078eaaa5b47d72b423350f33ba1f4873cc619a",
-    "committed_at": "2026-09-14T03:42:28Z",
+    "commit": "d74f2e9b4b5bd826bae1a3b05264ff7b1ffb5087",
+    "committed_at": "2026-09-21T08:07:11Z",
     "dir": "app/src/main/kotlin/com/prajwalch/torrentsearch/providers"
   },
-  "synced_at": "2026-09-14T05:26:17Z",
-  "count": 43,
+  "synced_at": "2026-09-21T10:44:09Z",
+  "count": 46,
   "providers": [
     {
       "id": "0magnet",
@@ -277,6 +277,26 @@
       "source_file": "app/src/main/kotlin/com/prajwalch/torrentsearch/providers/Dmhy.kt"
     },
     {
+      "id": "epublibre",
+      "name": "EpubLibre",
+      "site": "https://epublibre.org",
+      "categories": [
+        "books"
+      ],
+      "enabled_by_default": false,
+      "cloudflare": false,
+      "unsafe": false,
+      "unsafe_reason": null,
+      "capabilities": [
+        "LatestTorrentsProvider",
+        "TopTorrentsProvider",
+        "TorrentDetailsProvider",
+        "MagnetUriProvider"
+      ],
+      "shape": "mixed",
+      "source_file": "app/src/main/kotlin/com/prajwalch/torrentsearch/providers/EpubLibre.kt"
+    },
+    {
       "id": "extdotto",
       "name": "Ext",
       "site": "https://ext.to",
@@ -339,6 +359,25 @@
       "source_file": "app/src/main/kotlin/com/prajwalch/torrentsearch/providers/FileMood.kt"
     },
     {
+      "id": "fitgirlrepacks",
+      "name": "FitGirl Repacks",
+      "site": "https://fitgirl-repacks.site",
+      "categories": [
+        "games"
+      ],
+      "enabled_by_default": false,
+      "cloudflare": false,
+      "unsafe": false,
+      "unsafe_reason": null,
+      "capabilities": [
+        "LatestTorrentsProvider",
+        "TorrentDetailsProvider",
+        "MagnetUriProvider"
+      ],
+      "shape": "html",
+      "source_file": "app/src/main/kotlin/com/prajwalch/torrentsearch/providers/FitGirlRepacks.kt"
+    },
+    {
       "id": "internetarchive",
       "name": "InternetArchive",
       "site": "https://archive.org",
@@ -399,8 +438,8 @@
       ],
       "enabled_by_default": false,
       "cloudflare": false,
-      "unsafe": true,
-      "unsafe_reason": "limetorrents_unsafe_reason",
+      "unsafe": false,
+      "unsafe_reason": null,
       "capabilities": [
         "LatestTorrentsProvider",
         "TopTorrentsProvider",
@@ -509,6 +548,28 @@
       "source_file": "app/src/main/kotlin/com/prajwalch/torrentsearch/providers/NekoBT.kt"
     },
     {
+      "id": "nonameclub",
+      "name": "NoNameClub",
+      "site": "https://nnmclub.to",
+      "categories": [
+        "anime",
+        "apps",
+        "books",
+        "games",
+        "movies",
+        "music",
+        "series",
+        "other"
+      ],
+      "enabled_by_default": false,
+      "cloudflare": false,
+      "unsafe": false,
+      "unsafe_reason": null,
+      "capabilities": [],
+      "shape": "html",
+      "source_file": "app/src/main/kotlin/com/prajwalch/torrentsearch/providers/NoNameClub.kt"
+    },
+    {
       "id": "nyaasi",
       "name": "Nyaa",
       "site": "https://nyaa.si",
@@ -545,7 +606,7 @@
         "series"
       ],
       "enabled_by_default": false,
-      "cloudflare": false,
+      "cloudflare": true,
       "unsafe": false,
       "unsafe_reason": null,
       "capabilities": [
@@ -636,8 +697,8 @@
       ],
       "enabled_by_default": false,
       "cloudflare": false,
-      "unsafe": true,
-      "unsafe_reason": "tpb_unsafe_reason",
+      "unsafe": false,
+      "unsafe_reason": null,
       "capabilities": [
         "LatestTorrentsProvider",
         "TopTorrentsProvider",
@@ -663,8 +724,8 @@
       ],
       "enabled_by_default": false,
       "cloudflare": false,
-      "unsafe": true,
-      "unsafe_reason": "therarbg_unsafe_reason",
+      "unsafe": false,
+      "unsafe_reason": null,
       "capabilities": [
         "LatestTorrentsProvider",
         "TopTorrentsProvider",
@@ -686,7 +747,7 @@
         "other"
       ],
       "enabled_by_default": true,
-      "cloudflare": false,
+      "cloudflare": true,
       "unsafe": false,
       "unsafe_reason": null,
       "capabilities": [
