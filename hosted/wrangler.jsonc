@@ -23,9 +23,9 @@
     "TSP_CACHE": "600",
     "TSP_TIMEOUT": "5",
     "TSP_RELAY_URL": "https://relay.tspsearch.dev",
-    "TSP_RELAY_INDEXES": "bitsearch,nyaa",
+    "TSP_RELAY_INDEXES": "bitsearch,nyaa,piratebay,1tamilmv-malayalam,1tamilmv-tamil,1tamilmv-telugu,1tamilmv-hindi",
     "TSP_SCRAPE_URL": "https://relay.tspsearch.dev/api/v1/scrape",
-    "TSP_ALSO": "bitsearch,nyaa"
+    "TSP_ALSO": "bitsearch,nyaa,1tamilmv-malayalam,1tamilmv-tamil,1tamilmv-telugu,1tamilmv-hindi"
   },
   "ratelimits": [
     { "name": "TSP_RATE_SEARCH", "namespace_id": "1001", "simple": { "limit": 30, "period": 60 } },

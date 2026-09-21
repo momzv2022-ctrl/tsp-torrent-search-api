@@ -1,0 +1,50 @@
+{
+  "id": "1tamilmv-hindi",
+  "upstream": null,
+  "name": "1TamilMV (Hindi)",
+  "site": "https://www.1tamilmv.rocks",
+  "kind": "html",
+  "fixture": "1tamilmv.html",
+  "enabled": false,
+  "note": "Off by default. The site ignores queries, so every search reads the latest page of one forum, 137 KB of HTML, and follows up to five topics for their magnets: more than a pasted Worker on Cloudflare's free plan should spend on one index, and whether the site answers Cloudflare's addresses at all was not measured. The hosted deployment turns it on with TSP_ALSO and sends it through its relay. Worth it: regional Indian releases before their streaming date live here and nowhere else the catalogue reaches. Measured 2026-09-21 with Bethlehem Kudumba Unit, a month in cinemas: six magnets on one topic, 480 seeders on the largest, absent from every other index. Only the PreDVD forum of each language is read; the WEB-HD forums are the same shape with another forum id.",
+  "match": "name",
+  "origins": [
+    "https://www.1tamilmv.rocks",
+    "https://1tamilmv.meme"
+  ],
+  "categories": [
+    "movies"
+  ],
+  "request": {
+    "method": "GET",
+    "path": "/index.php?/forums/forum/57-predvd-dvdscr-cam-tc/"
+  },
+  "rows": "li.ipsDataItem[data-rowid]",
+  "fields": {
+    "name": {
+      "sel": "h4.ipsDataItem_title a"
+    },
+    "page": {
+      "sel": "h4.ipsDataItem_title a",
+      "attr": "href"
+    },
+    "first_seen": {
+      "sel": "div.ipsDataItem_meta time",
+      "attr": "datetime"
+    },
+    "category": {
+      "const": "video"
+    }
+  },
+  "follow": {
+    "fixture": "1tamilmv-topic.html",
+    "rows": "a[href^='magnet:']",
+    "fields": {
+      "magnet": {
+        "attr": "href"
+      }
+    },
+    "most": 4
+  },
+  "cache_s": 900
+}

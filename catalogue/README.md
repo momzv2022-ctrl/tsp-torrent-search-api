@@ -63,20 +63,57 @@ A field is a path, a list of paths tried in order, or an object:
 | `{ "from": "cat", "prefix": 1, "map": { "1": "video" } }` | classify by leading digits |
 | `{ "from": "link", "re": "([a-f0-9]{40})" }` | pull it out with a pattern |
 | `{ "const": "video" }` | a site that only ever carries one thing |
+| `{ "attr": "href" }` | HTML: an attribute of the row itself, for rows that are one element |
 
 In JSON, a row produced by a `[]` step can reach the object it came out of as
 `^`: `"^.title_long"` is how a YTS torrent finds the film's name.
 
 A descriptor may also carry `cache_s`, a number of seconds: a deployment on a
 custom domain then keeps that index's answer to a query for that long, which
-is how an index with a daily allowance is asked once per question.
+is how an index with a daily allowance is asked once per question. A request
+that does not mention `{q}` at all, a site that ignores the query, is the same
+page for every search, and every deployment fetches it once per `cache_s`,
+relay included.
+
+### Following a page
+
+A forum lists its topics on one page and keeps the magnets inside each topic,
+so no single page has both a name and a hash. A descriptor for such a site
+reads the listing for `name` and `page`, the topic's URL, and says how to read
+the page:
+
+```jsonc
+  "match": "name",                                   // the listing ignores the query, so the rows are filtered here
+  "rows": "li.ipsDataItem[data-rowid]",
+  "fields": {
+    "name": { "sel": "h4.ipsDataItem_title a" },
+    "page": { "sel": "h4.ipsDataItem_title a", "attr": "href" },
+    "first_seen": { "sel": "div.ipsDataItem_meta time", "attr": "datetime" }
+  },
+  "follow": {
+    "fixture": "example-topic.html",                 // a recorded page, beside the listing's
+    "rows": "a[href^='magnet:']",                    // the rows on that page
+    "fields": { "magnet": { "attr": "href" } },      // read like any fields, with `name` and `size_bytes` falling back to the magnet
+    "most": 4                                        // pages followed per search, default 5
+  }
+```
+
+Only the listing rows that match the query are followed, at most `most` of
+them, inside the index's own time limit, and each page's rows inherit the
+listing row's name, date and category where the page gives none, with the
+page itself as `description_url`. A listing row whose page yields no magnet
+was never a result and is dropped. `npm test` replays the listing fixture
+through the descriptor and every lead through the follow fixture.
 
 The fields you may fill: `name`, `infohash`, `magnet`, `size_bytes`, `seeders`,
 `leechers`, `completed`, `files`, `category`, `first_seen`, `description_url`,
-`torrent_url`. `name` is required, and so is one of `infohash` or `magnet`, a
+`torrent_url`, and `page` for a site that keeps its magnets on a page of their
+own (below). `name` is required, and so is one of `infohash` or `magnet`, a
 row that cannot be turned into a magnet link is not a result. Everything else
 is optional, and sizes, dates and counts are read in whatever shape the site
-prints them (`1.5 GiB`, `2 days ago`, `Jan 5, 2024`, epoch seconds).
+prints them (`1.5 GiB`, `2 days ago`, `Jan 5, 2024`, epoch seconds). A magnet
+link names its torrent in `dn` and often its length in `xl`, and a row that
+yields only the link gets its name and size from there.
 
 `completed` is the site's count of finished downloads over the life of the
 torrent, knaben's `grabs`, torrents-csv's `completed`. The Worker holds a

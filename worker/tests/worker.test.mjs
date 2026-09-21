@@ -1203,3 +1203,89 @@ test("a scrape service that still answers one count per swarm has that count jud
     ],
   );
 });
+
+// --- following a page ------------------------------------------------------------
+
+const { readPage, resetPages } = __testing;
+afterEach(() => resetPages());
+
+const FORUM = {
+  id: "forum",
+  kind: "html",
+  match: "name",
+  origins: ["https://forum.example"],
+  request: { method: "GET", path: "/index.php?/forums/forum/35-predvd/" },
+  rows: "li.ipsDataItem[data-rowid]",
+  fields: {
+    name: { sel: "h4.ipsDataItem_title a" },
+    page: { sel: "h4.ipsDataItem_title a", attr: "href" },
+    first_seen: { sel: "div.ipsDataItem_meta time", attr: "datetime" },
+    category: { const: "video" },
+  },
+  follow: { rows: "a[href^='magnet:']", fields: { magnet: { attr: "href" } }, most: 4 },
+  cache_s: 900,
+};
+
+test("a descriptor may follow a page for its magnets, and says so completely or not at all", () => {
+  assert.equal(descriptorProblem(FORUM), "");
+  assert.match(descriptorProblem({ ...FORUM, follow: { fields: { magnet: { attr: "href" } } } }), /follow.rows/);
+  assert.match(descriptorProblem({ ...FORUM, follow: { rows: "a", fields: { name: "x" } } }), /infohash or a magnet/);
+  assert.match(descriptorProblem({ ...FORUM, follow: { rows: "a", fields: { magnet: { attr: "href" }, page: { attr: "href" } } } }), /unknown follow field page/);
+  assert.match(descriptorProblem({ ...FORUM, follow: { ...FORUM.follow, most: 0 } }), /follow.most/);
+  assert.match(descriptorProblem({ ...FORUM, fields: { name: FORUM.fields.name } }), /must yield page/);
+  assert.match(descriptorProblem({ ...FORUM, follow: undefined, fields: { name: "x", infohash: { attr: "data-hash" } } }), /^$/, "an attribute of the row itself needs no selector");
+});
+
+test("a row that yields only a magnet link is named and sized by it", () => {
+  const hash = "6e7781b62a666908029b2a66a019350541a65549";
+  const [row] = rowsFrom("html", `<p><a href="magnet:?xt=urn:btih:${hash}&amp;dn=A%20Film%20%282026%29%20-%201080p&amp;xl=3126399022&amp;tr=udp%3A%2F%2Ft.example"></a></p>`, "a");
+  const read = readRow({ id: "x", kind: "html", fields: { magnet: { attr: "href" } } }, row, "https://forum.example", 0);
+  assert.equal(read.name, "A Film (2026) - 1080p");
+  assert.equal(read.size_bytes, 3126399022);
+  assert.equal(read.infohash, hash);
+});
+
+test("the listing's rows that match the query are followed to their pages, and come back as that page's magnets", async () => {
+  const listing = fixture("1tamilmv.html");
+  const topic = fixture("1tamilmv-topic.html");
+  const asked = stubFetch({ "feed.json": { body: catalogueFeed({ indexes: [FORUM] }) }, "forums/forum/35-predvd": { body: listing }, "forums/topic/": { body: topic } });
+  const env = { TSP_INDEXES: "forum" };
+
+  const body = await (await call("/api/v1/search?q=bethlehem+kudumba+unit", env)).json();
+  assert.equal(body.count, 2, "two magnets on the topic page");
+  const [one, two] = body.torrents.sort((a, b) => b.size_bytes - a.size_bytes);
+  assert.match(one.name, /^www\.1TamilMV\.meme - Bethlehem Kudumba Unit \(2026\) Malayalam HQ PreDVD - 1080p/, "named by the magnet");
+  assert.equal(one.size_bytes, 3126399022, "sized by the magnet");
+  assert.equal(one.infohash, "6e7781b62a666908029b2a66a019350541a65549");
+  assert.equal(one.category, "video", "inherited from the listing row");
+  assert.equal(one.first_seen, "2026-09-07T05:10:23.000Z", "the topic's date, from the listing row");
+  assert.match(one.description_url, /forums\/topic\/199657-bethlehem-kudumba-unit/, "the page it came from");
+  assert.equal(two.size_bytes, 1576992293);
+  assert.equal(asked.filter((a) => a.url.includes("forums/topic/")).length, 1, "one page followed: the one lead that matched");
+  assert.equal(body.failures, undefined);
+
+  const none = await (await call("/api/v1/search?q=nothing+here", env)).json();
+  assert.equal(none.count, 0);
+  assert.equal(asked.filter((a) => a.url.includes("forums/forum/35-predvd")).length, 1, "the listing is the same page for every query, fetched once per cache_s");
+  assert.equal(asked.filter((a) => a.url.includes("forums/topic/")).length, 1, "and nothing was followed for a query nothing matched");
+
+  const capped = await (await call("/api/v1/search?q=2026&indexers=forum", { ...env, TSP_FEED_URL: "https://feed.example/feed.json" })).json();
+  assert.ok(capped.count >= 2, "every 2026 topic matched and was followed");
+});
+
+test("a followed page that fails is a note against the index, not a failed search", async () => {
+  stubFetch({ "feed.json": { body: catalogueFeed({ indexes: [{ ...FORUM, origins: ["https://forum2.example"] }] }) }, "forums/forum/35-predvd": { body: fixture("1tamilmv.html").replaceAll("www.1tamilmv.rocks", "forum2.example") }, "forums/topic/": { status: 503 } });
+  const body = await (await call("/api/v1/search?q=bethlehem+kudumba+unit", { TSP_INDEXES: "forum" })).json();
+  assert.equal(body.count, 0);
+  assert.deepEqual(body.engines, ["forum"], "the listing answered");
+  assert.equal(body.failures, undefined, "a page that fails is not the index failing");
+});
+
+test("readPage reads a recorded page through a lead, as the build's replay does", () => {
+  const lead = { indexer: "forum", name: "Some Film (2026) Malayalam HQ PreDVD", page: "https://forum.example/index.php?/forums/topic/1-some-film/", first_seen: "2026-09-07T05:10:23.000Z", category: "video" };
+  const rows = readPage(FORUM, lead, fixture("1tamilmv-topic.html"), "https://forum.example", 0);
+  assert.equal(rows.length, 2);
+  assert.equal(rows[0].description_url, lead.page);
+  assert.equal(rows[0].first_seen, lead.first_seen);
+  assert.equal(rows[0].page, undefined, "a page is where a lead points, not a field of a result");
+});

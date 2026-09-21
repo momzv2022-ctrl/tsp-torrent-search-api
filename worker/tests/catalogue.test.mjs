@@ -49,6 +49,17 @@ test("no field spec is dead", () => {
       });
       assert.ok(found, `${descriptor.id}: fields.${target} extracts nothing from ${descriptor.fixture}`);
     }
+    if (!descriptor.follow) continue;
+    const page = readFileSync(join(REPO, "worker", "tests", "fixtures", descriptor.follow.fixture), "utf8");
+    const pageRows = rowsFrom("html", page, descriptor.follow.rows);
+    assert.ok(pageRows.length, `${descriptor.id}: follow.rows finds nothing in ${descriptor.follow.fixture}`);
+    for (const [target, spec] of Object.entries(descriptor.follow.fields)) {
+      const found = pageRows.some((row) => {
+        const value = pick(row, spec, "html", descriptor.origins[0]);
+        return value !== undefined && value !== null && value !== "";
+      });
+      assert.ok(found, `${descriptor.id}: follow.fields.${target} extracts nothing from ${descriptor.follow.fixture}`);
+    }
   }
 });
 
@@ -71,6 +82,9 @@ test("the feed carries what a Worker runs, and nothing about how we maintain it"
   assert.ok(!("fixture" in clean));
   assert.ok(!("note" in clean));
   assert.equal(clean.id, descriptor.id);
+  const [follower] = catalogue().filter((one) => one.follow);
+  assert.ok(follower, "at least one descriptor follows a page");
+  assert.ok(!("fixture" in published(follower).follow), "a follow's recorded page is ours, not the feed's");
 });
 
 test("docs/ is current, build it and commit it", () => {

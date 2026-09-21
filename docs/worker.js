@@ -53,7 +53,7 @@ const DEFAULT_FEED_URL = "https://momzv2022-ctrl.github.io/tsp-torrent-search-ap
 const BAKED_APIKEY = "";
 
 /** The catalogue as it stood when this file was built. A fallback, not a source of truth. */
-const BAKED_CATALOGUE = [{"id":"animetosho","upstream":"animetosho","name":"AnimeTosho","site":"https://animetosho.org","kind":"json","enabled":true,"origins":["https://feed.animetosho.org"],"categories":["anime"],"request":{"method":"GET","path":"/json","query":{"q":"{q}"}},"fields":{"name":"title","infohash":"magnet_uri","size_bytes":"total_size","seeders":"seeders","leechers":"leechers","first_seen":"timestamp","description_url":"link"}},{"id":"bitsearch","upstream":"bitsearch","name":"BitSearch","site":"https://bitsearch.to","kind":"json","enabled":false,"origins":["https://bitsearch.eu","https://bitsearch.to"],"categories":["anime","apps","books","games","movies","music","porn","series","other"],"request":{"method":"GET","path":"/api/v1/search","query":{"q":"{q}","category":"all","sort":"seeders"}},"rows":"results","fields":{"name":"title","infohash":"infohash","size_bytes":"size","seeders":"seeders","leechers":"leechers","first_seen":"createdAt","description_url":{"template":"https://bitsearch.eu/torrent/{value}","from":"id"}},"cache_s":21600},{"id":"dmhy","upstream":"dmhy","name":"Dmhy","site":"https://share.dmhy.org","kind":"rss","enabled":true,"origins":["https://share.dmhy.org"],"categories":["anime","books","games","music","series","other"],"request":{"method":"GET","path":"/topics/rss/rss.xml","query":{"keyword":"{q}"}},"fields":{"name":"title","infohash":"enclosure@url","first_seen":"pubDate","description_url":"link"}},{"id":"eztvx","upstream":"eztvx","name":"Eztv","site":"https://eztvx.to","kind":"json","enabled":true,"match":"name","origins":["https://eztvx.to"],"categories":["series"],"cloudflare":true,"request":{"method":"GET","path":"/api/get-torrents","query":{"limit":"{limit}","page":"1","Keywords":"{q}"}},"rows":"torrents","fields":{"name":"title","infohash":["hash","magnet_url"],"size_bytes":{"from":"size_bytes","nonzero":true},"seeders":"seeds","leechers":"peers","category":{"const":"video"},"first_seen":"date_released_unix","description_url":"episode_url"}},{"id":"knaben","upstream":"knaben","name":"Knaben","site":"https://knaben.org","kind":"json","enabled":true,"origins":["https://api.knaben.org","https://api.knaben.eu"],"categories":["anime","apps","books","games","movies","music","other","porn","series"],"request":{"method":"POST","path":"/v1","body":{"search_type":"100%","search_field":"title","query":"{q}","order_by":"seeders","order_direction":"desc","from":0,"size":"{limit}","hide_unsafe":true}},"rows":"hits","fields":{"name":"title","infohash":["hash","magnetUrl"],"size_bytes":"bytes","seeders":"seeders","leechers":"peers","completed":"grabs","first_seen":"date","description_url":"details","category":{"from":"categoryId","re":"^(\\d+)","map":{"1000000":"audio","2000000":"video","3000000":"video","4000000":"software","5000000":"video","6000000":"video","7000000":"software","9000000":"document"}}}},{"id":"nyaa","upstream":"nyaasi","name":"Nyaa","site":"https://nyaa.si","kind":"rss","enabled":false,"origins":["https://nyaa.si"],"categories":["anime","apps","books","games","music","series"],"request":{"method":"GET","path":"/","query":{"page":"rss","q":"{q}"}},"fields":{"name":"title","infohash":"nyaa:infoHash","size_bytes":"nyaa:size","seeders":"nyaa:seeders","leechers":"nyaa:leechers","category":{"from":"nyaa:categoryId","prefix":1,"map":{"1":"video","2":"audio","3":"document","4":"video","5":"image","6":"software"}},"first_seen":"pubDate","torrent_url":"link","description_url":"guid"}},{"id":"piratebay","upstream":"thepiratebay","name":"ThePirateBay","site":"https://thepiratebay.org","kind":"json","enabled":true,"origins":["https://apibay.org"],"categories":["apps","books","games","movies","music","porn","series","other"],"request":{"method":"GET","path":"/q.php","query":{"q":"{q}"}},"fields":{"name":"name","infohash":"info_hash","size_bytes":{"from":"size","nonzero":true},"files":{"from":"num_files","nonzero":true},"seeders":"seeders","leechers":"leechers","category":{"from":"category","prefix":1,"map":{"1":"audio","2":"video","3":"software","4":"software"}},"first_seen":"added","description_url":{"template":"https://thepiratebay.org/description.php?id={value}","from":"id"}}},{"id":"rutor","upstream":"rutorinfo","name":"Rutor","site":"https://rutor.info","kind":"html","enabled":true,"origins":["https://rutor.info","https://rutor.is"],"categories":["anime","apps","books","games","movies","music","other","series"],"request":{"method":"GET","path":"/search/0/0/100/0/{q}"},"rows":"div#index tr.gai, div#index tr.tum","fields":{"name":{"sel":"a[href^='/torrent/']"},"infohash":{"sel":"a[href^='magnet:']","attr":"href"},"size_bytes":{"cell":-2},"seeders":{"sel":"span.green"},"leechers":{"sel":"span.red"},"torrent_url":{"sel":"a.downgif","attr":"href"},"description_url":{"sel":"a[href^='/torrent/']","attr":"href"}}},{"id":"sukebei","upstream":"sukebeinyaa","name":"Sukebei","site":"https://sukebei.nyaa.si","kind":"rss","enabled":true,"origins":["https://sukebei.nyaa.si"],"categories":["porn"],"nsfw":true,"request":{"method":"GET","path":"/","query":{"page":"rss","q":"{q}"}},"fields":{"name":"title","infohash":"nyaa:infoHash","size_bytes":"nyaa:size","seeders":"nyaa:seeders","leechers":"nyaa:leechers","first_seen":"pubDate","torrent_url":"link","description_url":"guid"}},{"id":"torrentdownload","upstream":"torrentdownloadinfo","name":"TorrentDownload","site":"https://www.torrentdownload.info","kind":"html","enabled":false,"origins":["https://www.torrentdownload.info"],"categories":["anime","apps","books","games","movies","music","porn","series","other"],"request":{"method":"GET","path":"/search","query":{"q":"{q}"}},"rows":"table.table2 tr","fields":{"name":{"sel":"td.tdleft a"},"infohash":{"sel":"td.tdleft a","attr":"href"},"size_bytes":{"cell":3},"seeders":{"sel":"td.tdseed"},"leechers":{"sel":"td.tdleech"},"description_url":{"sel":"td.tdleft a","attr":"href"}}},{"id":"torrentdownloads","upstream":"torrentdownloads","name":"TorrentDownloads","site":"https://www.torrentdownloads.pro","kind":"rss","enabled":true,"match":"name","origins":["https://www.torrentdownloads.pro"],"categories":["anime","apps","books","games","movies","music","series","other"],"cloudflare":true,"request":{"method":"GET","path":"/rss.xml","query":{"type":"search","search":"{q}"}},"fields":{"name":"title","infohash":"info_hash","size_bytes":"size","first_seen":"pubDate","description_url":{"from":"link"}}},{"id":"torrentkitty","upstream":"torrentkitty","name":"TorrentKitty","site":"https://www.torrentkitty.tv","kind":"html","enabled":false,"origins":["https://www.torrentkitty.tv"],"categories":["other"],"request":{"method":"GET","path":"/search/{q}/"},"rows":"table#archiveResult tr","fields":{"name":{"sel":"td.name"},"infohash":{"sel":"td.action a[href^='magnet:']","attr":"href"},"size_bytes":{"sel":"td.size"},"first_seen":{"sel":"td.date"},"description_url":{"sel":"td.action a[href^='/information/']","attr":"href"}}},{"id":"torrentscsv","upstream":"torrentscsv","name":"TorrentsCSV","site":"https://torrents-csv.com","kind":"json","enabled":true,"origins":["https://torrents-csv.com"],"categories":["other"],"request":{"method":"GET","path":"/service/search","query":{"q":"{q}","size":"{limit}"}},"rows":"torrents","fields":{"name":"name","infohash":"infohash","size_bytes":"size_bytes","seeders":"seeders","leechers":"leechers","completed":"completed","first_seen":"created_unix"}},{"id":"yts","upstream":"ytsmx","name":"Yts","site":"https://yts.gg","kind":"json","enabled":true,"origins":["https://yts.gg","https://movies-api.accel.li","https://yts.bz","https://yts.lt"],"categories":["movies"],"request":{"method":"GET","path":"/api/v2/list_movies.json","query":{"query_term":"{q}","limit":"{limit}"}},"rows":"data.movies[].torrents[]","fields":{"name":"^.title_long","infohash":"hash","size_bytes":"size_bytes","seeders":"seeds","leechers":"peers","category":{"const":"video"},"first_seen":"date_uploaded_unix","description_url":"^.url"}}];
+const BAKED_CATALOGUE = [{"id":"1tamilmv-hindi","upstream":null,"name":"1TamilMV (Hindi)","site":"https://www.1tamilmv.rocks","kind":"html","enabled":false,"match":"name","origins":["https://www.1tamilmv.rocks","https://1tamilmv.meme"],"categories":["movies"],"request":{"method":"GET","path":"/index.php?/forums/forum/57-predvd-dvdscr-cam-tc/"},"rows":"li.ipsDataItem[data-rowid]","fields":{"name":{"sel":"h4.ipsDataItem_title a"},"page":{"sel":"h4.ipsDataItem_title a","attr":"href"},"first_seen":{"sel":"div.ipsDataItem_meta time","attr":"datetime"},"category":{"const":"video"}},"follow":{"rows":"a[href^='magnet:']","fields":{"magnet":{"attr":"href"}},"most":4},"cache_s":900},{"id":"1tamilmv-malayalam","upstream":null,"name":"1TamilMV (Malayalam)","site":"https://www.1tamilmv.rocks","kind":"html","enabled":false,"match":"name","origins":["https://www.1tamilmv.rocks","https://1tamilmv.meme"],"categories":["movies"],"request":{"method":"GET","path":"/index.php?/forums/forum/35-predvd-dvdscr-cam-tc/"},"rows":"li.ipsDataItem[data-rowid]","fields":{"name":{"sel":"h4.ipsDataItem_title a"},"page":{"sel":"h4.ipsDataItem_title a","attr":"href"},"first_seen":{"sel":"div.ipsDataItem_meta time","attr":"datetime"},"category":{"const":"video"}},"follow":{"rows":"a[href^='magnet:']","fields":{"magnet":{"attr":"href"}},"most":4},"cache_s":900},{"id":"1tamilmv-tamil","upstream":null,"name":"1TamilMV (Tamil)","site":"https://www.1tamilmv.rocks","kind":"html","enabled":false,"match":"name","origins":["https://www.1tamilmv.rocks","https://1tamilmv.meme"],"categories":["movies"],"request":{"method":"GET","path":"/index.php?/forums/forum/10-predvd-dvdscr-cam-tc/"},"rows":"li.ipsDataItem[data-rowid]","fields":{"name":{"sel":"h4.ipsDataItem_title a"},"page":{"sel":"h4.ipsDataItem_title a","attr":"href"},"first_seen":{"sel":"div.ipsDataItem_meta time","attr":"datetime"},"category":{"const":"video"}},"follow":{"rows":"a[href^='magnet:']","fields":{"magnet":{"attr":"href"}},"most":4},"cache_s":900},{"id":"1tamilmv-telugu","upstream":null,"name":"1TamilMV (Telugu)","site":"https://www.1tamilmv.rocks","kind":"html","enabled":false,"match":"name","origins":["https://www.1tamilmv.rocks","https://1tamilmv.meme"],"categories":["movies"],"request":{"method":"GET","path":"/index.php?/forums/forum/23-predvd-dvdscr-cam-tc/"},"rows":"li.ipsDataItem[data-rowid]","fields":{"name":{"sel":"h4.ipsDataItem_title a"},"page":{"sel":"h4.ipsDataItem_title a","attr":"href"},"first_seen":{"sel":"div.ipsDataItem_meta time","attr":"datetime"},"category":{"const":"video"}},"follow":{"rows":"a[href^='magnet:']","fields":{"magnet":{"attr":"href"}},"most":4},"cache_s":900},{"id":"animetosho","upstream":"animetosho","name":"AnimeTosho","site":"https://animetosho.org","kind":"json","enabled":true,"origins":["https://feed.animetosho.org"],"categories":["anime"],"request":{"method":"GET","path":"/json","query":{"q":"{q}"}},"fields":{"name":"title","infohash":"magnet_uri","size_bytes":"total_size","seeders":"seeders","leechers":"leechers","first_seen":"timestamp","description_url":"link"}},{"id":"bitsearch","upstream":"bitsearch","name":"BitSearch","site":"https://bitsearch.to","kind":"json","enabled":false,"origins":["https://bitsearch.eu","https://bitsearch.to"],"categories":["anime","apps","books","games","movies","music","porn","series","other"],"request":{"method":"GET","path":"/api/v1/search","query":{"q":"{q}","category":"all","sort":"seeders"}},"rows":"results","fields":{"name":"title","infohash":"infohash","size_bytes":"size","seeders":"seeders","leechers":"leechers","first_seen":"createdAt","description_url":{"template":"https://bitsearch.eu/torrent/{value}","from":"id"}},"cache_s":21600},{"id":"dmhy","upstream":"dmhy","name":"Dmhy","site":"https://share.dmhy.org","kind":"rss","enabled":true,"origins":["https://share.dmhy.org"],"categories":["anime","books","games","music","series","other"],"request":{"method":"GET","path":"/topics/rss/rss.xml","query":{"keyword":"{q}"}},"fields":{"name":"title","infohash":"enclosure@url","first_seen":"pubDate","description_url":"link"}},{"id":"eztvx","upstream":"eztvx","name":"Eztv","site":"https://eztvx.to","kind":"json","enabled":true,"match":"name","origins":["https://eztvx.to"],"categories":["series"],"cloudflare":true,"request":{"method":"GET","path":"/api/get-torrents","query":{"limit":"{limit}","page":"1","Keywords":"{q}"}},"rows":"torrents","fields":{"name":"title","infohash":["hash","magnet_url"],"size_bytes":{"from":"size_bytes","nonzero":true},"seeders":"seeds","leechers":"peers","category":{"const":"video"},"first_seen":"date_released_unix","description_url":"episode_url"}},{"id":"knaben","upstream":"knaben","name":"Knaben","site":"https://knaben.org","kind":"json","enabled":true,"origins":["https://api.knaben.org","https://api.knaben.eu"],"categories":["anime","apps","books","games","movies","music","other","porn","series"],"request":{"method":"POST","path":"/v1","body":{"search_type":"100%","search_field":"title","query":"{q}","order_by":"seeders","order_direction":"desc","from":0,"size":"{limit}","hide_unsafe":true}},"rows":"hits","fields":{"name":"title","infohash":["hash","magnetUrl"],"size_bytes":"bytes","seeders":"seeders","leechers":"peers","completed":"grabs","first_seen":"date","description_url":"details","category":{"from":"categoryId","re":"^(\\d+)","map":{"1000000":"audio","2000000":"video","3000000":"video","4000000":"software","5000000":"video","6000000":"video","7000000":"software","9000000":"document"}}}},{"id":"nyaa","upstream":"nyaasi","name":"Nyaa","site":"https://nyaa.si","kind":"rss","enabled":false,"origins":["https://nyaa.si"],"categories":["anime","apps","books","games","music","series"],"request":{"method":"GET","path":"/","query":{"page":"rss","q":"{q}"}},"fields":{"name":"title","infohash":"nyaa:infoHash","size_bytes":"nyaa:size","seeders":"nyaa:seeders","leechers":"nyaa:leechers","category":{"from":"nyaa:categoryId","prefix":1,"map":{"1":"video","2":"audio","3":"document","4":"video","5":"image","6":"software"}},"first_seen":"pubDate","torrent_url":"link","description_url":"guid"}},{"id":"piratebay","upstream":"thepiratebay","name":"ThePirateBay","site":"https://thepiratebay.org","kind":"json","enabled":true,"origins":["https://apibay.org"],"categories":["apps","books","games","movies","music","porn","series","other"],"request":{"method":"GET","path":"/q.php","query":{"q":"{q}"}},"fields":{"name":"name","infohash":"info_hash","size_bytes":{"from":"size","nonzero":true},"files":{"from":"num_files","nonzero":true},"seeders":"seeders","leechers":"leechers","category":{"from":"category","prefix":1,"map":{"1":"audio","2":"video","3":"software","4":"software"}},"first_seen":"added","description_url":{"template":"https://thepiratebay.org/description.php?id={value}","from":"id"}}},{"id":"rutor","upstream":"rutorinfo","name":"Rutor","site":"https://rutor.info","kind":"html","enabled":true,"origins":["https://rutor.info","https://rutor.is"],"categories":["anime","apps","books","games","movies","music","other","series"],"request":{"method":"GET","path":"/search/0/0/100/0/{q}"},"rows":"div#index tr.gai, div#index tr.tum","fields":{"name":{"sel":"a[href^='/torrent/']"},"infohash":{"sel":"a[href^='magnet:']","attr":"href"},"size_bytes":{"cell":-2},"seeders":{"sel":"span.green"},"leechers":{"sel":"span.red"},"torrent_url":{"sel":"a.downgif","attr":"href"},"description_url":{"sel":"a[href^='/torrent/']","attr":"href"}}},{"id":"sukebei","upstream":"sukebeinyaa","name":"Sukebei","site":"https://sukebei.nyaa.si","kind":"rss","enabled":true,"origins":["https://sukebei.nyaa.si"],"categories":["porn"],"nsfw":true,"request":{"method":"GET","path":"/","query":{"page":"rss","q":"{q}"}},"fields":{"name":"title","infohash":"nyaa:infoHash","size_bytes":"nyaa:size","seeders":"nyaa:seeders","leechers":"nyaa:leechers","first_seen":"pubDate","torrent_url":"link","description_url":"guid"}},{"id":"torrentdownload","upstream":"torrentdownloadinfo","name":"TorrentDownload","site":"https://www.torrentdownload.info","kind":"html","enabled":false,"origins":["https://www.torrentdownload.info"],"categories":["anime","apps","books","games","movies","music","porn","series","other"],"request":{"method":"GET","path":"/search","query":{"q":"{q}"}},"rows":"table.table2 tr","fields":{"name":{"sel":"td.tdleft a"},"infohash":{"sel":"td.tdleft a","attr":"href"},"size_bytes":{"cell":3},"seeders":{"sel":"td.tdseed"},"leechers":{"sel":"td.tdleech"},"description_url":{"sel":"td.tdleft a","attr":"href"}}},{"id":"torrentdownloads","upstream":"torrentdownloads","name":"TorrentDownloads","site":"https://www.torrentdownloads.pro","kind":"rss","enabled":true,"match":"name","origins":["https://www.torrentdownloads.pro"],"categories":["anime","apps","books","games","movies","music","series","other"],"cloudflare":true,"request":{"method":"GET","path":"/rss.xml","query":{"type":"search","search":"{q}"}},"fields":{"name":"title","infohash":"info_hash","size_bytes":"size","first_seen":"pubDate","description_url":{"from":"link"}}},{"id":"torrentkitty","upstream":"torrentkitty","name":"TorrentKitty","site":"https://www.torrentkitty.tv","kind":"html","enabled":false,"origins":["https://www.torrentkitty.tv"],"categories":["other"],"request":{"method":"GET","path":"/search/{q}/"},"rows":"table#archiveResult tr","fields":{"name":{"sel":"td.name"},"infohash":{"sel":"td.action a[href^='magnet:']","attr":"href"},"size_bytes":{"sel":"td.size"},"first_seen":{"sel":"td.date"},"description_url":{"sel":"td.action a[href^='/information/']","attr":"href"}}},{"id":"torrentscsv","upstream":"torrentscsv","name":"TorrentsCSV","site":"https://torrents-csv.com","kind":"json","enabled":true,"origins":["https://torrents-csv.com"],"categories":["other"],"request":{"method":"GET","path":"/service/search","query":{"q":"{q}","size":"{limit}"}},"rows":"torrents","fields":{"name":"name","infohash":"infohash","size_bytes":"size_bytes","seeders":"seeders","leechers":"leechers","completed":"completed","first_seen":"created_unix"}},{"id":"yts","upstream":"ytsmx","name":"Yts","site":"https://yts.gg","kind":"json","enabled":true,"origins":["https://yts.gg","https://movies-api.accel.li","https://yts.bz","https://yts.lt"],"categories":["movies"],"request":{"method":"GET","path":"/api/v2/list_movies.json","query":{"query_term":"{q}","limit":"{limit}"}},"rows":"data.movies[].torrents[]","fields":{"name":"^.title_long","infohash":"hash","size_bytes":"size_bytes","seeders":"seeds","leechers":"peers","category":{"const":"video"},"first_seen":"date_uploaded_unix","description_url":"^.url"}}];
 
 /**
  * Which code this is: the first twelve hex of this file's own SHA-256, stamped
@@ -69,7 +69,7 @@ const BAKED_CATALOGUE = [{"id":"animetosho","upstream":"animetosho","name":"Anim
  * identical across three code fixes and answered the question wrongly. The
  * source's own hash moves when and only when the source does.
  */
-const BUILD = "8a2635735448";
+const BUILD = "e6551ca8db11";
 
 /** Everything the Worker reads from the environment, resolved once per request. */
 function settings(env = {}) {
@@ -387,6 +387,7 @@ const TARGETS = {
   first_seen: "date",
   description_url: "url",
   torrent_url: "url",
+  page: "url",
 };
 
 const CATEGORIES = new Set(["video", "audio", "software", "archive", "document", "image", "other"]);
@@ -492,12 +493,30 @@ function descriptorProblem(entry) {
   const fields = entry.fields;
   if (!fields || typeof fields !== "object") return "fields must be an object";
   if (!fields.name) return "fields.name is required: a row without a name is not a result";
-  if (!fields.infohash && !fields.magnet) return "fields must yield an infohash or a magnet";
+  if (!fields.infohash && !fields.magnet) {
+    if (!entry.follow) return "fields must yield an infohash or a magnet";
+    if (!fields.page) return "a descriptor that follows must yield page, the page each row's magnets are on";
+  }
 
   for (const [target, spec] of Object.entries(fields)) {
     if (!TARGETS[target]) return `unknown field ${target}`;
     const problem = specProblem(spec, entry.kind);
     if (problem) return `fields.${target}: ${problem}`;
+  }
+
+  if (entry.follow !== undefined) {
+    const follow = entry.follow;
+    if (!follow || typeof follow !== "object" || Array.isArray(follow)) return "follow must be an object";
+    if (typeof follow.rows !== "string" || !follow.rows) return "follow.rows must say where the rows are on the page";
+    if (!follow.fields || typeof follow.fields !== "object") return "follow.fields must be an object";
+    if (!follow.fields.infohash && !follow.fields.magnet) return "follow.fields must yield an infohash or a magnet";
+    for (const [target, spec] of Object.entries(follow.fields)) {
+      if (!TARGETS[target] || target === "page") return `unknown follow field ${target}`;
+      const problem = specProblem(spec, "html");
+      if (problem) return `follow.fields.${target}: ${problem}`;
+    }
+    if (follow.most !== undefined && !(Number.isInteger(follow.most) && follow.most > 0)) return "follow.most must be a whole number above zero";
+    if (!fields.page) return "a descriptor that follows must yield page, the page each row's magnets are on";
   }
 
   if (entry.categories !== undefined && !Array.isArray(entry.categories)) return "categories must be an array";
@@ -520,7 +539,8 @@ function specProblem(spec, kind) {
 
   if (spec.const !== undefined) return "";
   const source = kind === "html" ? spec.sel : spec.from;
-  if (source === undefined && spec.from === undefined && spec.sel === undefined && spec.cell === undefined) return "needs a path";
+  // An attribute with no selector is the row's own, for rows that are one element: a magnet link's `href`.
+  if (source === undefined && spec.from === undefined && spec.sel === undefined && spec.cell === undefined && !(kind === "html" && spec.attr !== undefined)) return "needs a path";
   if (source !== undefined && typeof source !== "string") return `${kind === "html" ? "sel" : "from"} must be a string`;
   if (spec.attr !== undefined && typeof spec.attr !== "string") return "attr must be a string";
   if (spec.cell !== undefined && !Number.isInteger(spec.cell)) return "cell must be a whole number";
@@ -1187,16 +1207,35 @@ function buildRequest(descriptor, origin, query, settings) {
 }
 
 /** One row, read through a descriptor. Null when it lacks what a result needs. */
-function readRow(descriptor, row, origin, nowMs) {
+function readRow(descriptor, row, origin, nowMs, defaults = null) {
   const out = { indexer: descriptor.id };
   for (const [target, spec] of Object.entries(descriptor.fields)) {
     const value = coerce(target, pick(row, spec, descriptor.kind, origin), { origin, nowMs });
     if (value !== undefined) out[target] = value;
   }
 
-  if (!out.name) return null;
   if (!out.infohash && out.magnet) out.infohash = toInfohash(out.magnet);
-  if (!out.infohash) return null;
+  if (out.magnet) {
+    // A magnet link names its torrent and, often, its length, so an index
+    // that gives nothing but the link has still given both.
+    const dn = out.magnet.match(/[?&]dn=([^&]*)/);
+    if (!out.name && dn) out.name = coerce("name", magnetText(dn[1]), { origin, nowMs });
+    const xl = out.magnet.match(/[?&]xl=(\d+)/);
+    if (out.size_bytes === undefined && xl && Number(xl[1]) > 0) out.size_bytes = Number(xl[1]);
+  }
+  // A row read off a followed page inherits what the row that led to it knew:
+  // its name if the magnet had none, its date, its category, and the page as
+  // the place to read about it.
+  if (defaults) {
+    for (const [key, value] of Object.entries(defaults)) {
+      if (key !== "page" && key !== "indexer" && out[key] === undefined && value !== undefined) out[key] = value;
+    }
+  }
+
+  if (!out.name) return null;
+  // A row with no hash yet but a page to find one on is a lead, not a result;
+  // `followLeads` turns it into results or drops it.
+  if (!out.infohash) return descriptor.follow && out.page ? out : null;
   if (!out.magnet) out.magnet = `magnet:?xt=urn:btih:${out.infohash}&dn=${encodeURIComponent(out.name)}`;
 
   // Where a category comes from, in order of how much it knows about *this
@@ -1217,6 +1256,94 @@ function readRow(descriptor, row, origin, nowMs) {
     if (only) out.category = only;
   }
   return out;
+}
+
+/** The text a magnet's `dn` carries, decoded; a malformed one is taken as it is. */
+function magnetText(text) {
+  try {
+    return decodeURIComponent(String(text).replace(/\+/g, " "));
+  } catch {
+    return String(text);
+  }
+}
+
+/** The rows of a followed page, each filled in from the lead that named it. */
+function readPage(descriptor, lead, body, origin, nowMs) {
+  const page = { ...descriptor, fields: descriptor.follow.fields, follow: undefined };
+  const defaults = { ...lead, description_url: lead.description_url ?? lead.page };
+  return rowsFrom("html", body, descriptor.follow.rows)
+    .map((row) => readRow(page, row, origin, nowMs, defaults))
+    .filter(Boolean);
+}
+
+/**
+ * A page fetched once per `cache_s`, remembered in the isolate.
+ *
+ * Cloudflare's cache is only real on a custom domain and a relay's workerd
+ * has none, and a listing that does not depend on the query, a forum's first
+ * page, is the same answer for every search of the next quarter hour. So a
+ * body is kept here, per isolate, for a descriptor's `cache_s`: the site is
+ * asked once, however many searches arrive. The same for a followed page,
+ * whose magnets do not change between two searches for the same film.
+ */
+const pages = new Map();
+const PAGES_MOST = 60;
+
+async function fetchPage(url, init, waitMs, cacheS) {
+  const now = Date.now();
+  const held = pages.get(url);
+  if (held && held.until > now) return held.body;
+  const control = new AbortController();
+  const timer = setTimeout(() => control.abort(), waitMs);
+  try {
+    const response = await fetch(url, { ...init, signal: control.signal, redirect: "follow" });
+    if (!response.ok) throw new Error(`answered ${response.status}`);
+    const body = await response.text();
+    if (cacheS > 0) {
+      pages.set(url, { until: now + cacheS * 1000, body });
+      if (pages.size > PAGES_MOST) pages.delete(pages.keys().next().value);
+    }
+    return body;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+/**
+ * Follow the leads: the rows whose magnets are on a page of their own.
+ *
+ * A forum lists its topics on one page and keeps the magnets inside each
+ * topic, so a listing row is a lead, and the results are on the page it
+ * names. Only the leads that matched the query are followed, at most
+ * `follow.most` of them, together, inside the index's own clock. A lead
+ * whose page yields nothing is dropped: a topic with no magnet was never a
+ * result.
+ */
+const FOLLOW_MOST = 5;
+
+async function followLeads(descriptor, rows, origin, settings, deadline, nowMs, problems) {
+  const most = descriptor.follow.most ?? FOLLOW_MOST;
+  const leads = rows.filter((row) => !row.infohash);
+  const results = rows.filter((row) => row.infohash);
+  if (leads.length > most) problems.push(`${leads.length} pages matched, the first ${most} followed`);
+  const { init } = buildRequest({ ...descriptor, request: { ...(descriptor.request || {}), method: "GET" } }, origin, "", settings);
+  const followed = await Promise.all(
+    leads.slice(0, most).map(async (lead) => {
+      const host = new URL(lead.page).host;
+      const remaining = deadline - Date.now();
+      if (remaining <= 0) {
+        problems.push(`${host}: page not followed, no time left`);
+        return [];
+      }
+      try {
+        return readPage(descriptor, lead, await fetchPage(lead.page, init, remaining, descriptor.cache_s), origin, nowMs);
+      } catch (error) {
+        problems.push(`${host}: page ${error.name === "AbortError" ? "timed out" : String(error.message || error).slice(0, 120)}`);
+        return [];
+      }
+    }),
+  );
+  return [...results, ...followed.flat()];
 }
 
 /**
@@ -1300,19 +1427,28 @@ async function askIndex(descriptor, query, settings, nowMs) {
     const timer = setTimeout(() => control.abort(), remaining);
     try {
       const { url, init } = buildRequest(descriptor, origin, query, settings);
-      const response = await fetch(url, { ...init, signal: control.signal, redirect: "follow" });
-      const quota = noteQuota(descriptor.id, response);
-      if (!response.ok) {
-        problems.push(quota || `${new URL(origin).host} answered ${response.status}`);
-        if (quota) break;
-        continue;
+      // A request that does not mention the query is the same page for every
+      // search, and is fetched once per `cache_s` rather than once per search.
+      const steady = init.method === "GET" && descriptor.cache_s > 0 && !JSON.stringify(descriptor.request || {}).includes("{q");
+      let body;
+      if (steady) {
+        body = await fetchPage(url, init, remaining, descriptor.cache_s);
+      } else {
+        const response = await fetch(url, { ...init, signal: control.signal, redirect: "follow" });
+        const quota = noteQuota(descriptor.id, response);
+        if (!response.ok) {
+          problems.push(quota || `${new URL(origin).host} answered ${response.status}`);
+          if (quota) break;
+          continue;
+        }
+        if (quota) problems.push(quota);
+        body = await response.text();
       }
-      if (quota) problems.push(quota);
-      const body = await response.text();
-      const rows = rowsFrom(descriptor.kind, body, descriptor.rows)
+      let rows = rowsFrom(descriptor.kind, body, descriptor.rows)
         .slice(0, settings.limit)
         .map((row) => readRow(descriptor, row, origin, nowMs))
         .filter((row) => row && matchesQuery(descriptor, row, query));
+      if (descriptor.follow) rows = await followLeads(descriptor, rows, origin, settings, deadline, nowMs, problems);
       return { id: descriptor.id, rows, origin, problems };
     } catch (error) {
       problems.push(`${new URL(origin).host}: ${error.name === "AbortError" ? "timed out" : String(error.message || error).slice(0, 120)}`);
@@ -2034,6 +2170,7 @@ export const __testing = {
   jsonRows,
   queryAll,
   readFeed,
+  readPage,
   readQuery,
   readRow,
   rowsFrom,
@@ -2049,4 +2186,5 @@ export const __testing = {
     feedMemo = { at: 0, catalogue: null, meta: null };
   },
   resetQuotas: () => quotas.clear(),
+  resetPages: () => pages.clear(),
 };

@@ -1,9 +1,9 @@
 {
   "//": "The catalogue of tsp-torrent-search-api. Built from catalogue/*.json by `npm run build`; every deployment refetches it hourly. Data only.",
   "tsp_feed_version": 1,
-  "serial": 8,
-  "issued_at": "2026-09-17T11:27:53Z",
-  "expires_at": "2027-03-16T11:27:53Z",
+  "serial": 9,
+  "issued_at": "2026-09-21T10:19:45Z",
+  "expires_at": "2027-03-20T10:19:45Z",
   "upstream": {
     "repo": "prajwalch/TorrentSearch",
     "url": "https://github.com/prajwalch/TorrentSearch",
@@ -13,8 +13,196 @@
     "providers": 43,
     "synced_at": "2026-09-14T05:26:17Z"
   },
-  "count": 14,
+  "count": 18,
   "indexes": [
+    {
+      "id": "1tamilmv-hindi",
+      "upstream": null,
+      "name": "1TamilMV (Hindi)",
+      "site": "https://www.1tamilmv.rocks",
+      "kind": "html",
+      "enabled": false,
+      "match": "name",
+      "origins": [
+        "https://www.1tamilmv.rocks",
+        "https://1tamilmv.meme"
+      ],
+      "categories": [
+        "movies"
+      ],
+      "request": {
+        "method": "GET",
+        "path": "/index.php?/forums/forum/57-predvd-dvdscr-cam-tc/"
+      },
+      "rows": "li.ipsDataItem[data-rowid]",
+      "fields": {
+        "name": {
+          "sel": "h4.ipsDataItem_title a"
+        },
+        "page": {
+          "sel": "h4.ipsDataItem_title a",
+          "attr": "href"
+        },
+        "first_seen": {
+          "sel": "div.ipsDataItem_meta time",
+          "attr": "datetime"
+        },
+        "category": {
+          "const": "video"
+        }
+      },
+      "follow": {
+        "rows": "a[href^='magnet:']",
+        "fields": {
+          "magnet": {
+            "attr": "href"
+          }
+        },
+        "most": 4
+      },
+      "cache_s": 900
+    },
+    {
+      "id": "1tamilmv-malayalam",
+      "upstream": null,
+      "name": "1TamilMV (Malayalam)",
+      "site": "https://www.1tamilmv.rocks",
+      "kind": "html",
+      "enabled": false,
+      "match": "name",
+      "origins": [
+        "https://www.1tamilmv.rocks",
+        "https://1tamilmv.meme"
+      ],
+      "categories": [
+        "movies"
+      ],
+      "request": {
+        "method": "GET",
+        "path": "/index.php?/forums/forum/35-predvd-dvdscr-cam-tc/"
+      },
+      "rows": "li.ipsDataItem[data-rowid]",
+      "fields": {
+        "name": {
+          "sel": "h4.ipsDataItem_title a"
+        },
+        "page": {
+          "sel": "h4.ipsDataItem_title a",
+          "attr": "href"
+        },
+        "first_seen": {
+          "sel": "div.ipsDataItem_meta time",
+          "attr": "datetime"
+        },
+        "category": {
+          "const": "video"
+        }
+      },
+      "follow": {
+        "rows": "a[href^='magnet:']",
+        "fields": {
+          "magnet": {
+            "attr": "href"
+          }
+        },
+        "most": 4
+      },
+      "cache_s": 900
+    },
+    {
+      "id": "1tamilmv-tamil",
+      "upstream": null,
+      "name": "1TamilMV (Tamil)",
+      "site": "https://www.1tamilmv.rocks",
+      "kind": "html",
+      "enabled": false,
+      "match": "name",
+      "origins": [
+        "https://www.1tamilmv.rocks",
+        "https://1tamilmv.meme"
+      ],
+      "categories": [
+        "movies"
+      ],
+      "request": {
+        "method": "GET",
+        "path": "/index.php?/forums/forum/10-predvd-dvdscr-cam-tc/"
+      },
+      "rows": "li.ipsDataItem[data-rowid]",
+      "fields": {
+        "name": {
+          "sel": "h4.ipsDataItem_title a"
+        },
+        "page": {
+          "sel": "h4.ipsDataItem_title a",
+          "attr": "href"
+        },
+        "first_seen": {
+          "sel": "div.ipsDataItem_meta time",
+          "attr": "datetime"
+        },
+        "category": {
+          "const": "video"
+        }
+      },
+      "follow": {
+        "rows": "a[href^='magnet:']",
+        "fields": {
+          "magnet": {
+            "attr": "href"
+          }
+        },
+        "most": 4
+      },
+      "cache_s": 900
+    },
+    {
+      "id": "1tamilmv-telugu",
+      "upstream": null,
+      "name": "1TamilMV (Telugu)",
+      "site": "https://www.1tamilmv.rocks",
+      "kind": "html",
+      "enabled": false,
+      "match": "name",
+      "origins": [
+        "https://www.1tamilmv.rocks",
+        "https://1tamilmv.meme"
+      ],
+      "categories": [
+        "movies"
+      ],
+      "request": {
+        "method": "GET",
+        "path": "/index.php?/forums/forum/23-predvd-dvdscr-cam-tc/"
+      },
+      "rows": "li.ipsDataItem[data-rowid]",
+      "fields": {
+        "name": {
+          "sel": "h4.ipsDataItem_title a"
+        },
+        "page": {
+          "sel": "h4.ipsDataItem_title a",
+          "attr": "href"
+        },
+        "first_seen": {
+          "sel": "div.ipsDataItem_meta time",
+          "attr": "datetime"
+        },
+        "category": {
+          "const": "video"
+        }
+      },
+      "follow": {
+        "rows": "a[href^='magnet:']",
+        "fields": {
+          "magnet": {
+            "attr": "href"
+          }
+        },
+        "most": 4
+      },
+      "cache_s": 900
+    },
     {
       "id": "animetosho",
       "upstream": "animetosho",

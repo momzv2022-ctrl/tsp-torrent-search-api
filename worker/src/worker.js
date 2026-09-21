@@ -387,6 +387,7 @@ const TARGETS = {
   first_seen: "date",
   description_url: "url",
   torrent_url: "url",
+  page: "url",
 };
 
 const CATEGORIES = new Set(["video", "audio", "software", "archive", "document", "image", "other"]);
@@ -492,12 +493,30 @@ function descriptorProblem(entry) {
   const fields = entry.fields;
   if (!fields || typeof fields !== "object") return "fields must be an object";
   if (!fields.name) return "fields.name is required: a row without a name is not a result";
-  if (!fields.infohash && !fields.magnet) return "fields must yield an infohash or a magnet";
+  if (!fields.infohash && !fields.magnet) {
+    if (!entry.follow) return "fields must yield an infohash or a magnet";
+    if (!fields.page) return "a descriptor that follows must yield page, the page each row's magnets are on";
+  }
 
   for (const [target, spec] of Object.entries(fields)) {
     if (!TARGETS[target]) return `unknown field ${target}`;
     const problem = specProblem(spec, entry.kind);
     if (problem) return `fields.${target}: ${problem}`;
+  }
+
+  if (entry.follow !== undefined) {
+    const follow = entry.follow;
+    if (!follow || typeof follow !== "object" || Array.isArray(follow)) return "follow must be an object";
+    if (typeof follow.rows !== "string" || !follow.rows) return "follow.rows must say where the rows are on the page";
+    if (!follow.fields || typeof follow.fields !== "object") return "follow.fields must be an object";
+    if (!follow.fields.infohash && !follow.fields.magnet) return "follow.fields must yield an infohash or a magnet";
+    for (const [target, spec] of Object.entries(follow.fields)) {
+      if (!TARGETS[target] || target === "page") return `unknown follow field ${target}`;
+      const problem = specProblem(spec, "html");
+      if (problem) return `follow.fields.${target}: ${problem}`;
+    }
+    if (follow.most !== undefined && !(Number.isInteger(follow.most) && follow.most > 0)) return "follow.most must be a whole number above zero";
+    if (!fields.page) return "a descriptor that follows must yield page, the page each row's magnets are on";
   }
 
   if (entry.categories !== undefined && !Array.isArray(entry.categories)) return "categories must be an array";
@@ -520,7 +539,8 @@ function specProblem(spec, kind) {
 
   if (spec.const !== undefined) return "";
   const source = kind === "html" ? spec.sel : spec.from;
-  if (source === undefined && spec.from === undefined && spec.sel === undefined && spec.cell === undefined) return "needs a path";
+  // An attribute with no selector is the row's own, for rows that are one element: a magnet link's `href`.
+  if (source === undefined && spec.from === undefined && spec.sel === undefined && spec.cell === undefined && !(kind === "html" && spec.attr !== undefined)) return "needs a path";
   if (source !== undefined && typeof source !== "string") return `${kind === "html" ? "sel" : "from"} must be a string`;
   if (spec.attr !== undefined && typeof spec.attr !== "string") return "attr must be a string";
   if (spec.cell !== undefined && !Number.isInteger(spec.cell)) return "cell must be a whole number";
@@ -1187,16 +1207,35 @@ function buildRequest(descriptor, origin, query, settings) {
 }
 
 /** One row, read through a descriptor. Null when it lacks what a result needs. */
-function readRow(descriptor, row, origin, nowMs) {
+function readRow(descriptor, row, origin, nowMs, defaults = null) {
   const out = { indexer: descriptor.id };
   for (const [target, spec] of Object.entries(descriptor.fields)) {
     const value = coerce(target, pick(row, spec, descriptor.kind, origin), { origin, nowMs });
     if (value !== undefined) out[target] = value;
   }
 
-  if (!out.name) return null;
   if (!out.infohash && out.magnet) out.infohash = toInfohash(out.magnet);
-  if (!out.infohash) return null;
+  if (out.magnet) {
+    // A magnet link names its torrent and, often, its length, so an index
+    // that gives nothing but the link has still given both.
+    const dn = out.magnet.match(/[?&]dn=([^&]*)/);
+    if (!out.name && dn) out.name = coerce("name", magnetText(dn[1]), { origin, nowMs });
+    const xl = out.magnet.match(/[?&]xl=(\d+)/);
+    if (out.size_bytes === undefined && xl && Number(xl[1]) > 0) out.size_bytes = Number(xl[1]);
+  }
+  // A row read off a followed page inherits what the row that led to it knew:
+  // its name if the magnet had none, its date, its category, and the page as
+  // the place to read about it.
+  if (defaults) {
+    for (const [key, value] of Object.entries(defaults)) {
+      if (key !== "page" && key !== "indexer" && out[key] === undefined && value !== undefined) out[key] = value;
+    }
+  }
+
+  if (!out.name) return null;
+  // A row with no hash yet but a page to find one on is a lead, not a result;
+  // `followLeads` turns it into results or drops it.
+  if (!out.infohash) return descriptor.follow && out.page ? out : null;
   if (!out.magnet) out.magnet = `magnet:?xt=urn:btih:${out.infohash}&dn=${encodeURIComponent(out.name)}`;
 
   // Where a category comes from, in order of how much it knows about *this
@@ -1217,6 +1256,94 @@ function readRow(descriptor, row, origin, nowMs) {
     if (only) out.category = only;
   }
   return out;
+}
+
+/** The text a magnet's `dn` carries, decoded; a malformed one is taken as it is. */
+function magnetText(text) {
+  try {
+    return decodeURIComponent(String(text).replace(/\+/g, " "));
+  } catch {
+    return String(text);
+  }
+}
+
+/** The rows of a followed page, each filled in from the lead that named it. */
+function readPage(descriptor, lead, body, origin, nowMs) {
+  const page = { ...descriptor, fields: descriptor.follow.fields, follow: undefined };
+  const defaults = { ...lead, description_url: lead.description_url ?? lead.page };
+  return rowsFrom("html", body, descriptor.follow.rows)
+    .map((row) => readRow(page, row, origin, nowMs, defaults))
+    .filter(Boolean);
+}
+
+/**
+ * A page fetched once per `cache_s`, remembered in the isolate.
+ *
+ * Cloudflare's cache is only real on a custom domain and a relay's workerd
+ * has none, and a listing that does not depend on the query, a forum's first
+ * page, is the same answer for every search of the next quarter hour. So a
+ * body is kept here, per isolate, for a descriptor's `cache_s`: the site is
+ * asked once, however many searches arrive. The same for a followed page,
+ * whose magnets do not change between two searches for the same film.
+ */
+const pages = new Map();
+const PAGES_MOST = 60;
+
+async function fetchPage(url, init, waitMs, cacheS) {
+  const now = Date.now();
+  const held = pages.get(url);
+  if (held && held.until > now) return held.body;
+  const control = new AbortController();
+  const timer = setTimeout(() => control.abort(), waitMs);
+  try {
+    const response = await fetch(url, { ...init, signal: control.signal, redirect: "follow" });
+    if (!response.ok) throw new Error(`answered ${response.status}`);
+    const body = await response.text();
+    if (cacheS > 0) {
+      pages.set(url, { until: now + cacheS * 1000, body });
+      if (pages.size > PAGES_MOST) pages.delete(pages.keys().next().value);
+    }
+    return body;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+/**
+ * Follow the leads: the rows whose magnets are on a page of their own.
+ *
+ * A forum lists its topics on one page and keeps the magnets inside each
+ * topic, so a listing row is a lead, and the results are on the page it
+ * names. Only the leads that matched the query are followed, at most
+ * `follow.most` of them, together, inside the index's own clock. A lead
+ * whose page yields nothing is dropped: a topic with no magnet was never a
+ * result.
+ */
+const FOLLOW_MOST = 5;
+
+async function followLeads(descriptor, rows, origin, settings, deadline, nowMs, problems) {
+  const most = descriptor.follow.most ?? FOLLOW_MOST;
+  const leads = rows.filter((row) => !row.infohash);
+  const results = rows.filter((row) => row.infohash);
+  if (leads.length > most) problems.push(`${leads.length} pages matched, the first ${most} followed`);
+  const { init } = buildRequest({ ...descriptor, request: { ...(descriptor.request || {}), method: "GET" } }, origin, "", settings);
+  const followed = await Promise.all(
+    leads.slice(0, most).map(async (lead) => {
+      const host = new URL(lead.page).host;
+      const remaining = deadline - Date.now();
+      if (remaining <= 0) {
+        problems.push(`${host}: page not followed, no time left`);
+        return [];
+      }
+      try {
+        return readPage(descriptor, lead, await fetchPage(lead.page, init, remaining, descriptor.cache_s), origin, nowMs);
+      } catch (error) {
+        problems.push(`${host}: page ${error.name === "AbortError" ? "timed out" : String(error.message || error).slice(0, 120)}`);
+        return [];
+      }
+    }),
+  );
+  return [...results, ...followed.flat()];
 }
 
 /**
@@ -1300,19 +1427,28 @@ async function askIndex(descriptor, query, settings, nowMs) {
     const timer = setTimeout(() => control.abort(), remaining);
     try {
       const { url, init } = buildRequest(descriptor, origin, query, settings);
-      const response = await fetch(url, { ...init, signal: control.signal, redirect: "follow" });
-      const quota = noteQuota(descriptor.id, response);
-      if (!response.ok) {
-        problems.push(quota || `${new URL(origin).host} answered ${response.status}`);
-        if (quota) break;
-        continue;
+      // A request that does not mention the query is the same page for every
+      // search, and is fetched once per `cache_s` rather than once per search.
+      const steady = init.method === "GET" && descriptor.cache_s > 0 && !JSON.stringify(descriptor.request || {}).includes("{q");
+      let body;
+      if (steady) {
+        body = await fetchPage(url, init, remaining, descriptor.cache_s);
+      } else {
+        const response = await fetch(url, { ...init, signal: control.signal, redirect: "follow" });
+        const quota = noteQuota(descriptor.id, response);
+        if (!response.ok) {
+          problems.push(quota || `${new URL(origin).host} answered ${response.status}`);
+          if (quota) break;
+          continue;
+        }
+        if (quota) problems.push(quota);
+        body = await response.text();
       }
-      if (quota) problems.push(quota);
-      const body = await response.text();
-      const rows = rowsFrom(descriptor.kind, body, descriptor.rows)
+      let rows = rowsFrom(descriptor.kind, body, descriptor.rows)
         .slice(0, settings.limit)
         .map((row) => readRow(descriptor, row, origin, nowMs))
         .filter((row) => row && matchesQuery(descriptor, row, query));
+      if (descriptor.follow) rows = await followLeads(descriptor, rows, origin, settings, deadline, nowMs, problems);
       return { id: descriptor.id, rows, origin, problems };
     } catch (error) {
       problems.push(`${new URL(origin).host}: ${error.name === "AbortError" ? "timed out" : String(error.message || error).slice(0, 120)}`);
@@ -2034,6 +2170,7 @@ export const __testing = {
   jsonRows,
   queryAll,
   readFeed,
+  readPage,
   readQuery,
   readRow,
   rowsFrom,
@@ -2049,4 +2186,5 @@ export const __testing = {
     feedMemo = { at: 0, catalogue: null, meta: null };
   },
   resetQuotas: () => quotas.clear(),
+  resetPages: () => pages.clear(),
 };

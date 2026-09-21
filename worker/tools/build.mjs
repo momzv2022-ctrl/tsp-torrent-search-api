@@ -30,7 +30,7 @@ import { dirname, join } from "node:path";
 
 import { __testing } from "../src/worker.js";
 
-const { descriptorProblem, readRow, rowsFrom } = __testing;
+const { descriptorProblem, readPage, readRow, rowsFrom } = __testing;
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const REPO = join(HERE, "..", "..");
@@ -73,7 +73,9 @@ export function catalogue() {
 
 /** A descriptor as the feed carries it: what a Worker needs, and nothing else. */
 export function published(descriptor) {
-  return Object.fromEntries(Object.entries(descriptor).filter(([key]) => !BUILD_ONLY.has(key)));
+  const clean = Object.fromEntries(Object.entries(descriptor).filter(([key]) => !BUILD_ONLY.has(key)));
+  if (clean.follow) clean.follow = Object.fromEntries(Object.entries(clean.follow).filter(([key]) => !BUILD_ONLY.has(key)));
+  return clean;
 }
 
 /**
@@ -88,11 +90,22 @@ export function replay(descriptor) {
   const path = join(FIXTURES, descriptor.fixture);
   if (!existsSync(path)) throw new Error(`${descriptor.id}: fixture ${descriptor.fixture} is missing`);
   const body = readFileSync(path, "utf8");
+  const nowMs = Date.parse("2026-01-01T00:00:00Z");
   const rows = rowsFrom(descriptor.kind, body, descriptor.rows)
-    .map((row) => readRow(descriptor, row, descriptor.origins[0], Date.parse("2026-01-01T00:00:00Z")))
+    .map((row) => readRow(descriptor, row, descriptor.origins[0], nowMs))
     .filter(Boolean);
   if (!rows.length) throw new Error(`${descriptor.id}: reads no rows out of ${descriptor.fixture} any more`);
-  return { rows: rows.length, skipped: false };
+  if (!descriptor.follow) return { rows: rows.length, skipped: false };
+
+  // A descriptor that follows has two recorded pages: the listing, and one
+  // of the pages it leads to. Every lead is read against that one page.
+  if (!descriptor.follow.fixture) throw new Error(`${descriptor.id}: follow needs a fixture of its own, a recorded page`);
+  const pagePath = join(FIXTURES, descriptor.follow.fixture);
+  if (!existsSync(pagePath)) throw new Error(`${descriptor.id}: follow fixture ${descriptor.follow.fixture} is missing`);
+  const page = readFileSync(pagePath, "utf8");
+  const results = rows.filter((row) => !row.infohash).flatMap((lead) => readPage(descriptor, lead, page, descriptor.origins[0], nowMs));
+  if (!results.length) throw new Error(`${descriptor.id}: follows ${descriptor.follow.fixture} and reads no rows out of it any more`);
+  return { rows: results.length, skipped: false };
 }
 
 /** The census, if a sync has been run. Provenance for the feed, not a requirement. */
