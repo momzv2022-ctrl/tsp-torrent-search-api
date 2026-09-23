@@ -292,7 +292,11 @@ let key = "";
 // phone without Oriole (or with a build older than the link) is sent to the
 // Play Store instead of to an error page.
 
-const PACKAGE = "io.github.raul2hot.oriole";
+// ?app=debug aims the button at the debug build (its own package, installed
+// beside the Play one), which is how the link is tried on a phone before a
+// release carrying it is out.
+const PACKAGE = new URLSearchParams(location.search).get("app") === "debug"
+  ? "io.github.raul2hot.oriole.debug" : "io.github.raul2hot.oriole";
 const PLAY = `https://play.google.com/store/apps/details?id=${PACKAGE}&referrer=utm_source%3Dtspsearch.dev%26utm_medium%3Dweb%26utm_content%3Dadd`;
 // A large Android tablet asks for the desktop site by default and says "X11;
 // Linux x86_64", so a touch screen on Linux that is not a Chromebook counts too.
