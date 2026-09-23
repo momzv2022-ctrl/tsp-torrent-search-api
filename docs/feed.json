@@ -1,9 +1,9 @@
 {
   "//": "The catalogue of tsp-torrent-search-api. Built from catalogue/*.json by `npm run build`; every deployment refetches it hourly. Data only.",
   "tsp_feed_version": 1,
-  "serial": 9,
-  "issued_at": "2026-09-21T10:19:45Z",
-  "expires_at": "2027-03-20T10:19:45Z",
+  "serial": 10,
+  "issued_at": "2026-09-23T15:14:36Z",
+  "expires_at": "2027-03-22T15:14:36Z",
   "upstream": {
     "repo": "prajwalch/TorrentSearch",
     "url": "https://github.com/prajwalch/TorrentSearch",
@@ -19,11 +19,12 @@
       "id": "1tamilmv-hindi",
       "upstream": null,
       "name": "1TamilMV (Hindi)",
-      "site": "https://www.1tamilmv.rocks",
+      "site": "https://www.1tamilmv.lease",
       "kind": "html",
       "enabled": false,
       "match": "name",
       "origins": [
+        "https://www.1tamilmv.lease",
         "https://www.1tamilmv.rocks",
         "https://1tamilmv.meme"
       ],
@@ -66,11 +67,12 @@
       "id": "1tamilmv-malayalam",
       "upstream": null,
       "name": "1TamilMV (Malayalam)",
-      "site": "https://www.1tamilmv.rocks",
+      "site": "https://www.1tamilmv.lease",
       "kind": "html",
       "enabled": false,
       "match": "name",
       "origins": [
+        "https://www.1tamilmv.lease",
         "https://www.1tamilmv.rocks",
         "https://1tamilmv.meme"
       ],
@@ -113,11 +115,12 @@
       "id": "1tamilmv-tamil",
       "upstream": null,
       "name": "1TamilMV (Tamil)",
-      "site": "https://www.1tamilmv.rocks",
+      "site": "https://www.1tamilmv.lease",
       "kind": "html",
       "enabled": false,
       "match": "name",
       "origins": [
+        "https://www.1tamilmv.lease",
         "https://www.1tamilmv.rocks",
         "https://1tamilmv.meme"
       ],
@@ -160,11 +163,12 @@
       "id": "1tamilmv-telugu",
       "upstream": null,
       "name": "1TamilMV (Telugu)",
-      "site": "https://www.1tamilmv.rocks",
+      "site": "https://www.1tamilmv.lease",
       "kind": "html",
       "enabled": false,
       "match": "name",
       "origins": [
+        "https://www.1tamilmv.lease",
         "https://www.1tamilmv.rocks",
         "https://1tamilmv.meme"
       ],
