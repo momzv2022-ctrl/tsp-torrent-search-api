@@ -69,7 +69,7 @@ const BAKED_CATALOGUE = [{"id":"1tamilmv-hindi","upstream":null,"name":"1TamilMV
  * identical across three code fixes and answered the question wrongly. The
  * source's own hash moves when and only when the source does.
  */
-const BUILD = "e6551ca8db11";
+const BUILD = "0571b220edb5";
 
 /** Everything the Worker reads from the environment, resolved once per request. */
 function settings(env = {}) {
@@ -1363,10 +1363,20 @@ async function followLeads(descriptor, rows, origin, settings, deadline, nowMs, 
  * latest hundred uploads, so a search for a band came back as that week's
  * television. Not applied to every index, because one that searches actors
  * or descriptions returns names that lack the words and are still right.
+ *
+ * An apostrophe joins a word rather than splitting it, on both sides. Split,
+ * "I'm Game (2026)" read as `i m game`, so a search for `im game` — the way a
+ * phone keyboard makes it easy to type — dropped every 1TamilMV row of the
+ * film, and those were the only Malayalam copies there were.
  */
 function matchesQuery(descriptor, row, query) {
   if (descriptor.match !== "name") return true;
-  const fold = (text) => String(text).toLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim();
+  const fold = (text) =>
+    String(text)
+      .toLowerCase()
+      .replace(/['’‘`´ʼ]/g, "")
+      .replace(/[^\p{L}\p{N}]+/gu, " ")
+      .trim();
   const name = ` ${fold(row.name)} `;
   return fold(query).split(" ").filter(Boolean).every((term) => name.includes(term));
 }
@@ -1615,11 +1625,24 @@ function doubtClaims(rows) {
  * index kept, if it kept any, to answer for it. A row whose numbers were all
  * planted comes out `suspect`, at zero, with what it advertised kept in
  * `claimed_seeders`.
+ *
+ * And the rows with no claim at all are asked about too, as many again. A
+ * site that publishes no counts, 1TamilMV, sorts every row it gives to the
+ * very end, below every measured zero, so the top was never where they were
+ * and nothing ever gave them a number: measured 2026-09-23, "I'm Game" in
+ * Malayalam at rows 240 to 290 of 292, with 125 seeders on the trackers once
+ * a search short enough to reach it asked. Those are a week's regional
+ * releases, the newest rows in the answer, and a client that reads the first
+ * page never sees them.
  */
 const SCRAPE_BATCH = 50;
 
 async function measureSwarms(rows, settings) {
-  const top = rows.slice(0, settings.scrapeTop);
+  const uncounted = rows
+    .slice(settings.scrapeTop)
+    .filter((row) => row.seeders === undefined || row.seeders === null)
+    .slice(0, settings.scrapeTop);
+  const top = [...rows.slice(0, settings.scrapeTop), ...uncounted];
   if (!top.length) return { rows, measured: 0 };
   const control = new AbortController();
   const timer = setTimeout(() => control.abort(), 6000);
@@ -1775,12 +1798,26 @@ async function gather(query, catalogue, settings, nowMs) {
   return { rows, engines: answers.filter((one) => one.origin).map((one) => one.id), failures, browsing, scrapedAt };
 }
 
+/**
+ * Newest first, for `sort=recent`: by the date the index gave, a row with none
+ * last, and the swarm deciding between two of the same date.
+ */
+const byRecent = (a, b) => (Date.parse(b.first_seen) || 0) - (Date.parse(a.first_seen) || 0) || bySwarm(a, b);
+const bySize = (a, b) => (b.size_bytes ?? 0) - (a.size_bytes ?? 0) || bySwarm(a, b);
+
 /** TSP's search result object, out of what was gathered, for the page that was asked for. */
 function answer(query, gathered, started) {
   let rows = gathered.rows;
   if (query.cat) rows = rows.filter((row) => row.category === query.cat);
   if (query.minSeeders) rows = rows.filter((row) => (row.seeders ?? 0) >= query.minSeeders);
   if (query.suspect === "drop") rows = rows.filter((row) => !row.suspect);
+  // Ordered from the copy, like the filters above, so the cache holds one
+  // answer per question and each ordering is a sort of it. Without this every
+  // `sort` got the swarm order, and a client asking for the newest releases
+  // got the most-seeded ones with the newest at the very end, behind every row
+  // with a count — which is where a site that publishes none puts all of its.
+  if (query.sort === "recent") rows = [...rows].sort(byRecent);
+  else if (query.sort === "size") rows = [...rows].sort(bySize);
 
   const body = {
     query: query.q,
@@ -1886,14 +1923,25 @@ const whole = (value, fallback, cap) => {
   return Number.isFinite(number) && number >= 0 ? Math.min(number, cap) : fallback;
 };
 
+/**
+ * The most rows one page of the merged answer may carry.
+ *
+ * Not `TSP_LIMIT`, which is how many rows one index may contribute and was
+ * doing both jobs: a client that wanted the whole of a 300-row answer paid
+ * three requests against its rate limit for rows already sitting in the cache.
+ */
+const PAGE_MOST = 200;
+
 /** What a search request is asking for. */
 function readQuery(url, settings) {
   const indexers = (url.searchParams.get("indexers") || "").split(/[\s,]+/).filter(Boolean);
+  const sort = url.searchParams.get("sort") || "";
   return {
     q: url.searchParams.get("q") ?? "",
     terms: (url.searchParams.get("q") ?? "").replace(/[._-]+/g, " ").replace(/\s+/g, " ").trim(),
     cat: CATEGORIES.has(url.searchParams.get("cat") || "") ? url.searchParams.get("cat") : "",
-    limit: whole(url.searchParams.get("limit"), 50, settings.limit),
+    limit: whole(url.searchParams.get("limit"), 50, Math.max(PAGE_MOST, settings.limit)),
+    sort: sort === "recent" || sort === "size" ? sort : "",
     offset: whole(url.searchParams.get("offset"), 0, 10_000),
     minSeeders: whole(url.searchParams.get("min_seeders"), 0, 1e6),
     suspect: url.searchParams.get("suspect") === "drop" ? "drop" : "",

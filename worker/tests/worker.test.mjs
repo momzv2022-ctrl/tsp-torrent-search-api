@@ -259,6 +259,22 @@ test("an index that ignores the query is held to the name, if its descriptor say
   assert.equal(descriptorProblem({ id: "x", kind: "json", origins: ["https://x.example"], match: "title", fields: { name: "n", infohash: "h" } }), 'match must be "name", or absent');
 });
 
+test("an apostrophe joins a word for the name filter, on both sides", async () => {
+  // "I'm Game (2026)" read as `i m game`, so a search for `im game` dropped
+  // every 1TamilMV row of the film.
+  const rows = JSON.stringify([
+    { n: "www.1TamilMV.meme - I'm Game (2026) Malayalam HQ PreDVD - 1080p", h: "a".repeat(40) },
+    { n: "Im Game (2026) 720p Telugu DVDScr", h: "b".repeat(40) },
+    { n: "Game of Thrones S08", h: "c".repeat(40) },
+  ]);
+  const feed = feedBody({ indexes: [{ id: "lazy", kind: "json", origins: ["https://lazy.example"], match: "name", fields: { name: "n", infohash: "h" } }] });
+  stubFetch({ "feed.json": { body: feed }, "lazy.example": { body: rows } });
+  for (const q of ["im+game", "I%27m+game", "I%E2%80%99m+game"]) {
+    const body = await (await call(`/api/v1/search?q=${q}`)).json();
+    assert.deepEqual(body.torrents.map((t) => t.infohash).sort(), ["a".repeat(40), "b".repeat(40)], q);
+  }
+});
+
 test("the same torrent from two indexes becomes one row that names both", () => {
   const hash = "d".repeat(40);
   const rows = merge([
@@ -455,6 +471,27 @@ test("limit, offset and min_seeders are applied to the merged rows", async () =>
 
   const seeded = await (await call("/api/v1/search?q=x&indexers=piratebay&min_seeders=1000000")).json();
   assert.equal(seeded.torrents.length, 0);
+});
+
+test("sort=recent is newest first, sort=size largest first, and a page may be longer than one index's share", async () => {
+  // Every ordering used to be the swarm order, so a client asking for the
+  // newest releases got them last, behind every row with a count.
+  const rows = JSON.stringify([
+    { n: "Old But Loud", h: "a".repeat(40), s: 900, d: "2019-01-01", z: 100 },
+    { n: "Newest, Uncounted", h: "b".repeat(40), d: "2026-09-19", z: 200 },
+    { n: "New, Seeded", h: "c".repeat(40), s: 50, d: "2026-09-01", z: 300 },
+  ]);
+  const feed = feedBody({ indexes: [{ id: "one", kind: "json", origins: ["https://one.example"], fields: { name: "n", infohash: "h", seeders: "s", first_seen: "d", size_bytes: "z" } }] });
+  stubFetch({ "feed.json": { body: feed }, "one.example": { body: rows } });
+
+  const names = async (query) => (await (await call(`/api/v1/search?q=x&${query}`)).json()).torrents.map((t) => t.name);
+  assert.deepEqual(await names(""), ["Old But Loud", "New, Seeded", "Newest, Uncounted"], "the swarm order, still the default");
+  assert.deepEqual(await names("sort=recent"), ["Newest, Uncounted", "New, Seeded", "Old But Loud"]);
+  assert.deepEqual(await names("sort=size"), ["New, Seeded", "Newest, Uncounted", "Old But Loud"]);
+  assert.deepEqual(await names("sort=bogus"), await names(""), "an ordering it does not know is the default");
+
+  const page = await (await call("/api/v1/search?q=x&limit=500")).json();
+  assert.equal(page.limit, 200, "capped at a page, not at one index's hundred");
 });
 
 test("/api/v1/try runs a descriptor that is not in the catalogue", async () => {
@@ -908,6 +945,26 @@ test("the top rows of a search are re-counted by the trackers, and sorted by wha
     ["Loud Fake", 0, true],
   ], "measured counts replace claims, the list is re-sorted, and a row no tracker knew keeps its claim");
   assert.equal(body.failures, undefined);
+});
+
+test("rows with no count at all are measured too, past the top", async () => {
+  // A site that publishes no counts sorts every row to the very end, so the
+  // top was never where they were and nothing ever gave them a number.
+  const hash = (i) => i.toString(16).padStart(40, "0");
+  const claimed = Array.from({ length: 3 }, (_, i) => ({ name: `Claimed ${i}`, infohash: hash(i + 1), magnet: `magnet:?xt=urn:btih:${hash(i + 1)}`, seeders: 100 - i, indexer: "piratebay" }));
+  const fresh = { name: "I'm Game (2026) Malayalam", infohash: hash(99), magnet: `magnet:?xt=urn:btih:${hash(99)}`, indexer: "piratebay" };
+  const asked = stubFetch({
+    "feed.json": { body: catalogueFeed() },
+    "relay.example/api/v1/relay": { body: JSON.stringify({ id: "piratebay", origin: "https://apibay.org", problems: [], rows: [...claimed, fresh] }) },
+    "relay.example/api/v1/scrape": { body: JSON.stringify({ swarms: { [hash(99)]: { seeders: 125, leechers: 9, answered: 5 } }, trackers: 5 }) },
+  });
+  const env = { TSP_RELAY_URL: "https://relay.example", TSP_RELAY_KEY: "rk", TSP_RELAY_INDEXES: "piratebay", TSP_INDEXES: "piratebay", TSP_SCRAPE_URL: "https://relay.example/api/v1/scrape", TSP_SCRAPE_TOP: "2" };
+  const body = await (await call("/api/v1/search?q=thing", env)).json();
+  const scraped = asked.filter((one) => one.url.includes("/api/v1/scrape")).map((one) => decodeURIComponent(one.url)).join(" ");
+  assert.ok(scraped.includes(hash(99)), "the uncounted row was asked about although it sat below the top two");
+  assert.ok(!scraped.includes(hash(3)), "a counted row below the top is still left alone");
+  assert.equal(body.torrents[0].name, "I'm Game (2026) Malayalam", "and, measured, it sorts where its swarm puts it");
+  assert.equal(body.torrents[0].seeders, 125);
 });
 
 test("a scrape service that fails leaves the claims alone and says so", async () => {
