@@ -51,7 +51,8 @@ GET /api/v1/search?q=ubuntu&apikey=…
 | | |
 | --- | --- |
 | `q` | the query. `.`, `_` and `-` are separators |
-| `limit`, `offset` | page through the merged rows (default 50) |
+| `limit`, `offset` | page through the merged rows (default 50, at most 200) |
+| `sort` | `recent` for newest first, `size` for largest; by default, most seeders |
 | `cat` | `video`, `audio`, `software`, `archive`, `document`, `image`, `other` |
 | `min_seeders` | drop anything under |
 | `suspect` | `drop` to leave out rows whose swarm a bot planted; by default they stay, at the bottom, marked |
