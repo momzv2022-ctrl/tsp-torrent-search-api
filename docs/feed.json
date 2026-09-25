@@ -1,9 +1,9 @@
 {
   "//": "The catalogue of tsp-torrent-search-api. Built from catalogue/*.json by `npm run build`; every deployment refetches it hourly. Data only.",
   "tsp_feed_version": 1,
-  "serial": 10,
-  "issued_at": "2026-09-23T15:14:36Z",
-  "expires_at": "2027-03-22T15:14:36Z",
+  "serial": 11,
+  "issued_at": "2026-09-25T01:46:12Z",
+  "expires_at": "2027-03-24T01:46:12Z",
   "upstream": {
     "repo": "prajwalch/TorrentSearch",
     "url": "https://github.com/prajwalch/TorrentSearch",
@@ -714,7 +714,6 @@
       "name": "TorrentKitty",
       "site": "https://www.torrentkitty.tv",
       "kind": "html",
-      "enabled": false,
       "origins": [
         "https://www.torrentkitty.tv"
       ],
@@ -733,9 +732,6 @@
         "infohash": {
           "sel": "td.action a[href^='magnet:']",
           "attr": "href"
-        },
-        "size_bytes": {
-          "sel": "td.size"
         },
         "first_seen": {
           "sel": "td.date"

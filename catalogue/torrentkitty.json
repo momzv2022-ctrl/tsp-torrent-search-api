@@ -5,14 +5,13 @@
   "site": "https://www.torrentkitty.tv",
   "kind": "html",
   "fixture": "torrentkitty.html",
-  "enabled": false,
   "origins": [
     "https://www.torrentkitty.tv"
   ],
   "categories": [
     "other"
   ],
-  "note": "HTTP 403 to Cloudflare's addresses (2026-09-05); on only by TSP_INDEXES.",
+  "note": "Answers Cloudflare's addresses again and refuses the relay's server with 403 (2026-09-25; the other way round on 2026-09-05), so it is asked directly and is on by default. Its size column is often the .torrent file's own size rather than the content's (223.04 kb for a 3 GB Ubuntu ISO, seen 2026-09-25), so size is not read: no size beats a wrong one, and a copy of the same torrent from another index fills it in. A nonsense query returns nothing, so its rows are real.",
   "request": {
     "method": "GET",
     "path": "/search/{q}/"
@@ -25,9 +24,6 @@
     "infohash": {
       "sel": "td.action a[href^='magnet:']",
       "attr": "href"
-    },
-    "size_bytes": {
-      "sel": "td.size"
     },
     "first_seen": {
       "sel": "td.date"

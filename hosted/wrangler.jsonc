@@ -19,11 +19,11 @@
   "routes": [{ "pattern": "api.tspsearch.dev", "custom_domain": true }],
   "keep_vars": true,
   "vars": {
-    "TSP_NSFW": "0",
+    "TSP_NSFW": "1",
     "TSP_CACHE": "600",
     "TSP_TIMEOUT": "5",
     "TSP_RELAY_URL": "https://relay.tspsearch.dev",
-    "TSP_RELAY_INDEXES": "bitsearch,nyaa,piratebay,1tamilmv-malayalam,1tamilmv-tamil,1tamilmv-telugu,1tamilmv-hindi",
+    "TSP_RELAY_INDEXES": "bitsearch,nyaa,sukebei,piratebay,1tamilmv-malayalam,1tamilmv-tamil,1tamilmv-telugu,1tamilmv-hindi",
     "TSP_SCRAPE_URL": "https://relay.tspsearch.dev/api/v1/scrape",
     "TSP_ALSO": "bitsearch,nyaa,1tamilmv-malayalam,1tamilmv-tamil,1tamilmv-telugu,1tamilmv-hindi"
   },
