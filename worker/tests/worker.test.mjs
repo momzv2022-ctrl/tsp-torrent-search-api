@@ -827,6 +827,36 @@ test("indexes named in TSP_RELAY_INDEXES are asked through the relay, and merge 
   assert.ok(body.torrents.some((torrent) => torrent.name === "Ubuntu Relayed" && torrent.sources.includes("piratebay")));
 });
 
+test("a JSON index's names are unescaped, as an HTML page's are", async () => {
+  // apibay, 2026-09-26: a name stored for a web page and sent as JSON.
+  stubFetch({ "feed.json": { status: 404 }, "new.example": { body: JSON.stringify([
+    { n: "Nine Inch Nails &nbsp;The Slip &nbsp;Album -24Bit FLAC", h: "e".repeat(40) },
+    { n: "Simon &amp; Garfunkel&#160;&#8211; Bookends", h: "f".repeat(40) },
+    { n: "Tom &unknown; Jerry", h: "a".repeat(40) },
+  ]) } });
+  const descriptor = { id: "new", kind: "json", origins: ["https://new.example"], rows: "", fields: { name: "n", infohash: "h" } };
+  const d = encodeURIComponent(JSON.stringify(descriptor));
+  const env = { TSP_APIKEY: "rk", TSP_RELAY_ONLY: "1" };
+  const whole = await (await call(`/api/v1/relay?d=${d}&q=slip&apikey=rk`, env)).json();
+  assert.deepEqual(whole.rows.map((row) => row.name), [
+    "Nine Inch Nails The Slip Album -24Bit FLAC",
+    "Simon & Garfunkel – Bookends",
+    "Tom &unknown; Jerry",
+  ], "entities decoded, the space &nbsp; became folded, an unknown entity left as written");
+});
+
+test("a relay's names are cleaned on arrival, whatever copy of this file the relay runs", async () => {
+  const hash = "d".repeat(40);
+  const rows = [{ name: "Nine Inch Nails &nbsp;The Slip &nbsp;Album", infohash: hash, magnet: `magnet:?xt=urn:btih:${hash}`, seeders: 9, indexer: "piratebay" }];
+  stubFetch({
+    "feed.json": { body: catalogueFeed() },
+    "relay.example/api/v1/relay": { body: JSON.stringify({ id: "piratebay", origin: "https://apibay.org", problems: [], rows }) },
+  });
+  const env = { TSP_RELAY_URL: "https://relay.example", TSP_RELAY_KEY: "rk", TSP_RELAY_INDEXES: "piratebay", TSP_INDEXES: "piratebay" };
+  const body = await (await call("/api/v1/search?q=slip", env)).json();
+  assert.deepEqual(body.torrents.map((torrent) => torrent.name), ["Nine Inch Nails The Slip Album"]);
+});
+
 test("a relay that fails is a failure of that index, not of the search", async () => {
   stubFetch({ "feed.json": { body: catalogueFeed() }, "relay.example": { status: 502 }, "torrents-csv.com": { body: fixture("torrentscsv.json") } });
   const env = { TSP_RELAY_URL: "https://relay.example", TSP_RELAY_KEY: "rk", TSP_RELAY_INDEXES: "piratebay", TSP_INDEXES: "piratebay,torrentscsv" };
