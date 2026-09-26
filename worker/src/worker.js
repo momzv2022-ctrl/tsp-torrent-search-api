@@ -1087,6 +1087,22 @@ function classifyName(name) {
   return null;
 }
 
+/**
+ * A release name, readable: entities decoded and whitespace folded.
+ *
+ * Decoded whatever the index's kind. An HTML or RSS page is unescaped once on
+ * the way in, but a JSON API can hand over a name exactly as its site stored
+ * it for a web page, and a JSON string is never unescaped: apibay sent
+ * "Nine Inch Nails &nbsp;The Slip &nbsp;Album" on 2026-09-26, and whenever
+ * that copy won the merge the top row said "&nbsp;" out loud. Decoding a
+ * second time costs nothing a release name carries, and the fold then takes
+ * the space &nbsp; became.
+ */
+function cleanName(value) {
+  const text = unescapeHtml(String(value)).replace(/\s+/g, " ").trim();
+  return text || undefined;
+}
+
 /** One raw value onto its TSP type, or absent. */
 function coerce(target, value, { origin, nowMs }) {
   if (value === undefined || value === null || value === "") return undefined;
@@ -1106,6 +1122,7 @@ function coerce(target, value, { origin, nowMs }) {
       return CATEGORIES.has(category) ? category : undefined;
     }
     default: {
+      if (target === "name") return cleanName(value);
       const text = String(value).replace(/\s+/g, " ").trim();
       return text || undefined;
     }
@@ -1727,9 +1744,12 @@ async function askRelay(descriptor, query, settings) {
     const response = await fetch(url, { headers: { "x-api-key": settings.relayKey, accept: "application/json" }, signal: control.signal });
     if (!response.ok) return problem(`answered ${response.status}`);
     const got = await response.json();
+    // Names are cleaned here as well as where the relay made them: a relay
+    // still running an older copy of this file sends them as it read them.
+    const rows = Array.isArray(got.rows) ? got.rows : [];
     return {
       id: descriptor.id,
-      rows: Array.isArray(got.rows) ? got.rows : [],
+      rows: rows.map((row) => (typeof row?.name === "string" ? { ...row, name: cleanName(row.name) ?? row.name } : row)),
       origin: got.origin ?? null,
       problems: Array.isArray(got.problems) ? got.problems.map((text) => `relay: ${text}`) : [],
     };
