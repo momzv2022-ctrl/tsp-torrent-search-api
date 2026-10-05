@@ -3,11 +3,11 @@
   "upstream": {
     "repo": "prajwalch/TorrentSearch",
     "url": "https://github.com/prajwalch/TorrentSearch",
-    "commit": "4fcae9df36af71739593dafc38898442cffb1f90",
-    "committed_at": "2026-09-28T09:52:34Z",
+    "commit": "5ee79109798fad30d1067901c6b697d6e054cff3",
+    "committed_at": "2026-10-04T13:47:56Z",
     "dir": "app/src/main/kotlin/com/prajwalch/torrentsearch/providers"
   },
-  "synced_at": "2026-09-28T11:41:52Z",
+  "synced_at": "2026-10-05T12:16:50Z",
   "count": 46,
   "providers": [
     {
@@ -462,7 +462,8 @@
       "capabilities": [
         "LatestTorrentsProvider",
         "TopTorrentsProvider",
-        "TorrentDetailsProvider"
+        "TorrentDetailsProvider",
+        "MagnetUriProvider"
       ],
       "shape": "html",
       "source_file": "app/src/main/kotlin/com/prajwalch/torrentsearch/providers/LinuxTracker.kt"
@@ -485,6 +486,8 @@
       "unsafe": false,
       "unsafe_reason": null,
       "capabilities": [
+        "LatestTorrentsProvider",
+        "TopTorrentsProvider",
         "TorrentDetailsProvider",
         "MagnetUriProvider"
       ],
